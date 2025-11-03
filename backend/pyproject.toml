@@ -1,0 +1,146 @@
+[tool.poetry]
+name = "bi-agent-backend"
+version = "0.1.0"
+description = "Data Analytics & Business Intelligence Agent - Backend"
+authors = ["Your Team <team@example.com>"]
+readme = "README.md"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+# API Framework
+fastapi = "^0.104.0"
+uvicorn = {extras = ["standard"], version = "^0.24.0"}
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+
+# AI/LLM
+openai = "^1.12.0"
+langchain = "^0.1.0"
+langgraph = "^0.1.0"
+langchain-openai = "^0.0.2"
+langchain-community = "^0.0.10"
+vanna = "^0.3.0"
+sentence-transformers = "^2.2.2"
+
+# Database
+sqlalchemy = "^2.0.25"
+asyncpg = "^0.29.0"  # PostgreSQL async
+psycopg2-binary = "^2.9.9"  # PostgreSQL sync
+pymysql = "^1.1.0"  # MySQL
+snowflake-connector-python = "^3.7.0"  # Snowflake
+google-cloud-bigquery = "^3.14.0"  # BigQuery
+alembic = "^1.13.0"  # Migrations
+
+# Caching & Storage
+redis = {extras = ["hiredis"], version = "^5.0.1"}
+pinecone-client = "^3.0.0"
+
+# Authentication & Security
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-multipart = "^0.0.6"
+cryptography = "^41.0.0"
+
+# Utilities
+python-dotenv = "^1.0.0"
+httpx = "^0.25.0"
+aiohttp = "^3.9.0"
+tenacity = "^8.2.3"  # Retry logic
+sqlparse = "^0.4.4"  # SQL parsing
+
+# Monitoring & Logging
+prometheus-client = "^0.19.0"
+structlog = "^23.2.0"
+sentry-sdk = {extras = ["fastapi"], version = "^1.39.0"}
+opentelemetry-api = "^1.22.0"
+opentelemetry-sdk = "^1.22.0"
+opentelemetry-instrumentation-fastapi = "^0.43b0"
+
+# Data Processing
+pandas = "^2.1.4"
+numpy = "^1.26.0"
+scipy = "^1.11.4"
+
+[tool.poetry.group.dev.dependencies]
+# Testing
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.12.0"
+httpx = "^0.25.0"  # For testing FastAPI
+
+# Code Quality
+black = "^23.12.0"
+isort = "^5.13.0"
+mypy = "^1.7.0"
+pylint = "^3.0.0"
+flake8 = "^6.1.0"
+
+# Type Stubs
+types-redis = "^4.6.0"
+types-passlib = "^1.7.7"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | \.pytest_cache
+  | __pycache__
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_unimported = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+check_untyped_defs = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "vanna.*",
+    "sentence_transformers.*",
+    "pinecone.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "-v",
+]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
