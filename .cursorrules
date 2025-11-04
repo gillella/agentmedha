@@ -1,0 +1,82 @@
+# Email Handling Rules
+
+## Email Account Configuration
+The following email accounts are configured with MCP Gmail servers:
+- arvinda.reddy@gmail.com (mcp_gmail-arvinda-reddy)
+- arvinda.gillella@gmail.com (mcp_gmail-arvinda-gillella)
+- firsts.lastn@gmail.com (mcp_gmail-firsts-lastn)
+
+## Email Checking Protocol
+When the user asks to check emails (for any of the configured accounts):
+
+1. **Search for Unread Emails**
+   - Use `gmail_search_emails` with `isUnread: true` and `label: INBOX`
+   - Retrieve up to 50 emails initially
+
+2. **Categorize and Summarize**
+   - Analyze all unread emails
+   - Categorize them into:
+     * 🔴 **CRITICAL/URGENT**: Security alerts, login notifications, account issues
+     * 🟡 **IMPORTANT**: Time-sensitive offers, important updates, news updates
+     * 🟢 **INFORMATIONAL**: Newsletters, promotions, general content
+   
+3. **Provide Actionable Summary**
+   - Highlight CRITICAL items first with specific action items
+   - List IMPORTANT items with brief context
+   - Summarize INFORMATIONAL items in aggregate
+   - Include dates for context (recent vs older emails)
+
+4. **Mark Emails as Read**
+   - After presenting the summary, automatically mark ALL summarized emails as read
+   - Use `gmail_mark_email` for each email ID
+   - Confirm completion with a simple note
+
+## Email Categories Priority
+
+### 🔴 CRITICAL (Immediate Action Required)
+- Security alerts (new login, password reset, suspicious activity)
+- Account verification requests
+- Banking/financial alerts
+- System notifications from Google
+- Two-factor authentication codes
+
+### 🟡 IMPORTANT (Review Recommended)
+- News updates from subscribed sources
+- Limited-time offers with specific deadlines
+- Updates from known contacts
+- Important service announcements
+- Social media notifications (Instagram, YouTube)
+
+### 🟢 INFORMATIONAL (Low Priority)
+- Marketing emails and promotions
+- Newsletters
+- General advertising
+- Sales and discounts
+- Generic updates
+
+## Response Format Template
+
+```
+📧 EMAIL SUMMARY for [account]
+Total Unread: [count]
+
+🔴 CRITICAL ITEMS ([count])
+[List each with action item]
+
+🟡 IMPORTANT ITEMS ([count])
+[Brief list with dates]
+
+🟢 INFORMATIONAL ([count])
+[Aggregate summary]
+
+✅ All [count] emails have been marked as read.
+```
+
+## Automation Rules
+- Always check for unread emails when user mentions "check email" or "check my email"
+- Always mark emails as read after summarizing
+- Always categorize by importance
+- Always provide actionable guidance
+- Never skip the marking as read step
+- Be concise but comprehensive in summaries
+

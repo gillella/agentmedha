@@ -1,305 +1,225 @@
-# AgentMedha
-## AI-Powered Analytics & Business Intelligence
+# AgentMedha 🧠
 
-**Medha** — Sanskrit for "intelligence" and "wisdom" • **Medha Devi** — Goddess of intelligence, aspect of Saraswati
+> AI-Powered Data Analytics & Business Intelligence Agent
 
----
+AgentMedha is an intelligent data analytics platform that enables non-technical users to interact with databases using natural language. Built following the **12 Factor Agents** methodology, it provides enterprise-grade reliability, scalability, and maintainability.
 
-An AI-powered analytics platform that enables non-technical stakeholders to interact with complex databases using natural language, powered by multi-agent workflows following the **12 Factor Agents** methodology.
+## ✨ Features
 
-## 🎯 Overview
-
-AgentMedha transforms how organizations interact with their data by:
-
-- **Natural Language Queries**: Ask questions in plain English, get SQL results
+- **Natural Language SQL**: Ask questions in plain English, get SQL automatically
+- **Multi-Agent System**: Specialized AI agents work together for comprehensive analytics
+- **Smart Visualizations**: Automatic chart selection and interactive dashboards
 - **Automated Insights**: AI-generated insights and recommendations
-- **Interactive Dashboards**: Beautiful, interactive visualizations
-- **Multi-Agent Workflow**: Specialized agents working together for comprehensive analytics
-- **Enterprise-Ready**: Built for scale, security, and reliability
-
-## 🌟 Key Features
-
-### Natural Language SQL Query Agent
-- Convert conversational questions to SQL
-- Support for complex queries (joins, aggregations, subqueries)
-- Schema-aware query generation
-- Query safety validation
-- >90% query accuracy
-
-### Enterprise Analytics Workflow
-- **Planner Agent**: Understands intent and plans analysis
-- **SQL Agent**: Generates and executes optimized SQL
-- **Visualization Agent**: Creates appropriate charts and dashboards
-- **Insight Agent**: Generates natural language insights and recommendations
-
-### Automated Data Analysis
-- Statistical analysis (trends, patterns, outliers)
-- Predictive analytics and forecasting
-- Anomaly detection
-- Period-over-period comparisons
-- Executive summaries
-
-### Interactive Visualizations
-- Line charts, bar charts, pie charts, scatter plots, heat maps
-- Real-time dashboard updates
-- Drill-down capabilities
-- Export to PNG, PDF, Excel
-- Mobile-responsive design
+- **Enterprise Security**: JWT authentication, RBAC, audit logging
+- **Multi-Database Support**: PostgreSQL, MySQL, Snowflake, BigQuery
+- **Query Caching**: Smart caching for improved performance
+- **Real-time Monitoring**: Prometheus & Grafana integration
 
 ## 🏗️ Architecture
 
-Built on **12 Factor Agents** principles:
-
 ```
-User Interface (React)
-        ↓
-API Gateway (FastAPI)
-        ↓
-Agent Orchestration (LangGraph)
-    ↙   ↓   ↓   ↘
-Planner  SQL  Viz  Insight
-    ↘   ↓   ↓   ↙
-Supporting Services
-        ↓
-Data Layer (Multiple DBs)
+┌─────────────────────────────────────────────┐
+│           React Frontend (Vite)             │
+│     Natural Language Query Interface        │
+└────────────────┬────────────────────────────┘
+                 │ REST API / WebSocket
+┌────────────────▼────────────────────────────┐
+│         FastAPI Backend (Python)            │
+│     ┌───────────────────────────────┐      │
+│     │   Multi-Agent Orchestration   │      │
+│     │  (LangGraph + LangChain)      │      │
+│     │                                │      │
+│     │  Planner → SQL → Viz → Insight │      │
+│     └───────────────────────────────┘      │
+└────────────────┬────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────┐
+│  PostgreSQL | Redis | Pinecone (optional)  │
+│  Metadata | Cache | Vector Store           │
+└─────────────────────────────────────────────┘
 ```
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed architecture documentation.
-
-## 📋 Project Status
-
-**Phase**: Planning & Design Complete  
-**Next**: Implementation Phase Starting
-
-- [x] Project plan complete
-- [x] Requirements documented
-- [x] Architecture designed
-- [x] Technology stack selected
-- [ ] Implementation in progress
-- [ ] Testing
-- [ ] Beta launch
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Python 3.11+
-- Node.js 18+
 - Docker & Docker Compose
-- PostgreSQL 14+ (or other supported database)
-- OpenAI API key (or other LLM provider)
+- OpenAI API key
+- 8GB RAM minimum
 
 ### Installation
 
+1. **Clone the repository**
+
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd agentmedha
-
-# Set up backend
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your configuration
-
-# Set up frontend
-cd ../frontend
-npm install
-
-# Start development environment
-docker-compose up -d  # Starts Redis, PostgreSQL, etc.
-
-# Run backend
-cd backend
-uvicorn app.main:app --reload
-
-# Run frontend (in another terminal)
-cd frontend
-npm start
 ```
 
-Visit `http://localhost:3000` to access AgentMedha.
+2. **Set up environment variables**
 
-## 📚 Documentation
+```bash
+# Copy example files
+cp .env.example .env
+cp backend/env.example backend/.env
 
-- [**Project Plan**](./PROJECT_PLAN.md) - Comprehensive project plan with roadmap
-- [**Requirements**](./REQUIREMENTS.md) - Detailed functional and non-functional requirements
-- [**Architecture**](./ARCHITECTURE.md) - System architecture and design
-- [**Technology Stack**](./TECH_STACK.md) - Technology decisions and comparisons
-- [**Getting Started**](./GETTING_STARTED.md) - Setup and development guide
-- [**Project Summary**](./PROJECT_SUMMARY.md) - Executive summary
+# Edit .env and add your OpenAI API key
+# Minimum required: OPENAI_API_KEY
+```
 
-## 🛠️ Technology Stack
+3. **Start the stack**
 
-### Backend
-- **Framework**: FastAPI (Python)
-- **AI/LLM**: OpenAI GPT-4, LangChain, LangGraph
-- **Text-to-SQL**: Vanna.AI + Custom pipeline
-- **Databases**: PostgreSQL, MySQL, Snowflake, BigQuery
-- **Caching**: Redis
-- **Vector DB**: Pinecone
+```bash
+docker-compose up -d
+```
 
-### Frontend
-- **Framework**: React 18 with TypeScript
-- **State Management**: Zustand + React Query
-- **Visualization**: Plotly.js
-- **UI Components**: Tailwind CSS + Radix UI
-- **Build Tool**: Vite
+4. **Initialize the database**
 
-### Infrastructure
-- **Containerization**: Docker
-- **Orchestration**: Kubernetes
-- **Monitoring**: Prometheus + Grafana
-- **Logging**: ELK Stack
-- **Tracing**: Jaeger/OpenTelemetry
+```bash
+# Run database migrations
+docker-compose exec backend alembic upgrade head
 
-## 🏢 Use Cases
+# Create a demo user
+docker-compose exec backend python -m app.scripts.create_demo_user
+```
 
-### Business Analyst
-> "What were our top 5 products by revenue last quarter?"
+5. **Access the application**
 
-AgentMedha automatically:
-1. Understands you want revenue analysis
-2. Identifies the relevant tables (products, sales)
-3. Generates and executes the SQL query
-4. Creates a bar chart visualization
-5. Provides insights like "Revenue up 15% vs previous quarter"
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+- **Grafana**: http://localhost:3001 (admin/admin)
+- **Prometheus**: http://localhost:9090
 
-### Data Analyst
-> "Show me customer churn rate by segment for the last 6 months, and compare it to industry benchmarks"
+### Demo Credentials
 
-AgentMedha handles multi-step analysis:
-1. Calculates churn rate by segment
-2. Performs period-over-period comparison
-3. Creates trend visualization
-4. Generates insights and recommendations
+- **Username**: `admin`
+- **Password**: `admin123`
 
-### Executive
-> "Give me an executive summary of our Q3 performance"
+## 📖 Documentation
 
-AgentMedha provides:
-1. Key metrics dashboard
-2. Highlights and lowlights
-3. Comparisons to targets and previous periods
-4. Actionable recommendations
+- [Getting Started Guide](./GETTING_STARTED.md) - Complete setup instructions
+- [Project Plan](./PROJECT_PLAN.md) - Comprehensive development plan
+- [Architecture](./ARCHITECTURE.md) - System architecture details
+- [Tech Stack](./TECH_STACK.md) - Technology decisions
+- [Requirements](./REQUIREMENTS.md) - Functional & non-functional requirements
 
-## 🔐 Security
+## 🛠️ Development
 
-- **Authentication**: JWT + OAuth 2.0 + SSO
-- **Authorization**: Role-based access control (RBAC) + Row-level security
-- **Encryption**: TLS 1.3 in transit, AES-256 at rest
-- **Audit Logging**: Complete audit trail of all queries
-- **SQL Injection Prevention**: Multi-layer validation
-- **Compliance**: GDPR, SOC 2, HIPAA ready
+### Backend Development
 
-## 📊 Success Metrics
+```bash
+cd backend
 
-| Metric | Target | Current |
-|--------|--------|---------|
-| Query Accuracy | >90% | TBD |
-| Query Latency (P95) | <5s | TBD |
-| User Satisfaction | >4.5/5 | TBD |
-| Daily Active Users | 100+ | TBD |
-| System Uptime | >99.9% | TBD |
+# Install dependencies
+poetry install
 
-## 🗺️ Roadmap
+# Run development server
+poetry run uvicorn app.main:app --reload
 
-### Q1 2025 (Current)
-- [x] Project planning
-- [x] Architecture design
-- [ ] Core agent implementation
-- [ ] Basic UI
+# Run tests
+poetry run pytest
 
-### Q2 2025
-- [ ] Advanced features
-- [ ] Performance optimization
-- [ ] Beta testing
-- [ ] Production deployment
+# Format code
+poetry run black app/
+poetry run isort app/
+```
 
-### Q3 2025
-- [ ] Enterprise features
-- [ ] Advanced analytics
-- [ ] Collaboration tools
+### Frontend Development
 
-### Q4 2025
-- [ ] AI enhancements
-- [ ] Mobile app
-- [ ] International expansion
+```bash
+cd frontend
 
-See [PROJECT_PLAN.md](./PROJECT_PLAN.md) for detailed roadmap.
+# Install dependencies
+npm install
 
-## 🤝 Contributing
+# Run development server
+npm run dev
 
-We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+# Build for production
+npm run build
 
-### Development Workflow
+# Run tests
+npm test
+```
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## 🧪 Testing
 
-## 📖 12 Factor Agents Principles
+```bash
+# Backend tests
+cd backend
+poetry run pytest --cov=app tests/
 
-AgentMedha strictly adheres to the 12 Factor Agents methodology:
+# Frontend tests
+cd frontend
+npm test
+```
 
-1. ✅ **Single-Purpose Agents**: Each agent has one clear responsibility
-2. ✅ **Explicit Dependencies**: All dependencies versioned and declared
-3. ✅ **Configuration Management**: Config in environment, not code
-4. ✅ **External Tool Integration**: Databases as attachable resources
-5. ✅ **Deterministic Deployment**: Reproducible builds and deployments
-6. ✅ **Stateless Execution**: Agents maintain no internal state
-7. ✅ **Port Binding**: Services exposed via port binding
-8. ✅ **Concurrency**: Horizontal scaling through process instances
-9. ✅ **Disposability**: Fast startup and graceful shutdown
-10. ✅ **Dev/Prod Parity**: Minimal environment differences
-11. ✅ **Logs as Event Streams**: Structured logging to stdout
-12. ✅ **Admin Processes**: One-off tasks as separate processes
+## 📊 Monitoring
 
-Learn more: https://mainstream.dev/12-factor-agents
+AgentMedha includes built-in monitoring with Prometheus and Grafana:
 
-## 📄 License
+- **Metrics endpoint**: http://localhost:8000/metrics
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3001
+
+Key metrics tracked:
+- Query execution time
+- Query success rate
+- Agent performance
+- Cache hit rate
+- API response times
+
+## 🔒 Security
+
+- JWT-based authentication
+- Role-based access control (RBAC)
+- SQL injection prevention
+- Rate limiting
+- Audit logging
+- Encrypted connections
+
+## 🏢 12 Factor Agents Principles
+
+AgentMedha is built following the [12 Factor Agents](https://mainstream.dev/12-factor-agents) methodology:
+
+1. ✅ **Single-Purpose Agents** - Each agent has one clear responsibility
+2. ✅ **Explicit Dependencies** - All dependencies pinned in `pyproject.toml`
+3. ✅ **Configuration Management** - Environment variables via Pydantic Settings
+4. ✅ **External Tool Integration** - Database abstraction layer
+5. ✅ **Deterministic Deployment** - Docker images with reproducible builds
+6. ✅ **Stateless Execution** - State externalized to Redis/Database
+7. ✅ **Port Binding** - FastAPI self-contained server
+8. ✅ **Concurrency** - Horizontal scaling support
+9. ✅ **Disposability** - Fast startup (<10s), graceful shutdown
+10. ✅ **Dev/Prod Parity** - Same containers and infrastructure
+11. ✅ **Logs as Event Streams** - Structured JSON logging to stdout
+12. ✅ **Admin Processes** - Database migrations via Alembic
+
+## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👥 Team
+## 🤝 Contributing
 
-- **Technical Lead**: [Name]
-- **Product Manager**: [Name]
-- **Backend Engineers**: [Names]
-- **Frontend Engineers**: [Names]
-- **Data Scientists**: [Names]
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
 
-## 📞 Contact & Support
+## 📧 Support
 
-- **Email**: support@agentmedha.com
-- **Documentation**: https://docs.agentmedha.com
-- **Issues**: GitHub Issues
-- **Discussions**: GitHub Discussions
-- **Slack**: #agentmedha-support
+- **Documentation**: Check the `/docs` directory
+- **Issues**: Open a GitHub issue
+- **Discussions**: Use GitHub Discussions
 
 ## 🙏 Acknowledgments
 
-- Inspired by LinkedIn's AI-powered SQL Bot
-- Built on top of amazing open-source projects: LangChain, FastAPI, React, Plotly
-- Following the 12 Factor Agents methodology by Mainstream.dev
-- Special thanks to the AI/ML community for their research and tools
-
-## 🎨 About the Name
-
-**Medha** (Sanskrit: मेधा) means "intelligence," "wisdom," and "mental power."
-
-**Medha Devi** is the Hindu goddess of intelligence and wisdom, often considered an aspect of Saraswati, the goddess of knowledge, music, arts, and learning.
-
-The name **AgentMedha** embodies our mission: to bring intelligence and wisdom to data analysis, empowering everyone to make informed decisions.
+- Built with [FastAPI](https://fastapi.tiangolo.com/)
+- Powered by [OpenAI](https://openai.com/)
+- UI components from [Radix UI](https://www.radix-ui.com/)
+- Visualizations with [Plotly](https://plotly.com/)
+- Multi-agent orchestration with [LangGraph](https://langchain-ai.github.io/langgraph/)
 
 ---
 
-**Built with ❤️ using 12 Factor Agents principles**
+**Built with ❤️ following 12 Factor Agents principles**
 
-*Empowering intelligence through data • AgentMedha*
+Version: 0.1.0 | Status: Development

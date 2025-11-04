@@ -1,31 +1,30 @@
 version: '3.8'
 
 services:
-  # PostgreSQL - Metadata Store
-  postgres:
-    image: postgres:15-alpine
-    container_name: biagent-postgres
+  # PostgreSQL Database
+  db:
+    image: pgvector/pgvector:pg15
+    container_name: agentmedha-db
     environment:
-      POSTGRES_USER: biagent
-      POSTGRES_PASSWORD: biagent
-      POSTGRES_DB: biagent
+      - POSTGRES_USER=agentmedha
+      - POSTGRES_PASSWORD=agentmedha
+      - POSTGRES_DB=agentmedha
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U biagent"]
+      test: ["CMD-SHELL", "pg_isready -U agentmedha"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - biagent
+      - agentmedha-network
 
-  # Redis - Caching & Sessions
+  # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: biagent-redis
-    command: redis-server --appendonly yes
+    container_name: agentmedha-redis
     ports:
       - "6379:6379"
     volumes:
@@ -33,96 +32,116 @@ services:
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      timeout: 5s
+      timeout: 3s
       retries: 5
     networks:
-      - biagent
+      - agentmedha-network
 
-  # Prometheus - Metrics Collection
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: agentmedha-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # Application
+      - APP_NAME=AgentMedha API
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=INFO
+      
+      # API
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://frontend:3000
+      
+      # Security
+      - SECRET_KEY=your-secret-key-change-in-production-min-32-chars-long
+      
+      # LLM
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=gpt-4-turbo-2024-04-09
+      
+      # Database
+      - DATABASE_URL=postgresql+asyncpg://agentmedha:agentmedha@db:5432/agentmedha
+      
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      
+      # Features
+      - ENABLE_QUERY_CACHING=true
+      - ENABLE_SEMANTIC_SEARCH=true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/alembic.ini:/app/alembic.ini
+    networks:
+      - agentmedha-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: agentmedha-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - /app/node_modules
+    networks:
+      - agentmedha-network
+    command: npm run dev
+
+  # Prometheus (Monitoring)
   prometheus:
     image: prom/prometheus:latest
-    container_name: biagent-prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
+    container_name: agentmedha-prometheus
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
     networks:
-      - biagent
-    depends_on:
-      - postgres
-      - redis
+      - agentmedha-network
 
-  # Grafana - Metrics Visualization
+  # Grafana (Monitoring Dashboard)
   grafana:
     image: grafana/grafana:latest
-    container_name: biagent-grafana
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
+    container_name: agentmedha-grafana
     ports:
       - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-    networks:
-      - biagent
     depends_on:
       - prometheus
-
-  # Backend API (for production deployment)
-  # api:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   container_name: biagent-api
-  #   environment:
-  #     - DATABASE_URL=postgresql+asyncpg://biagent:biagent@postgres:5432/biagent
-  #     - REDIS_URL=redis://redis:6379/0
-  #     - OPENAI_API_KEY=${OPENAI_API_KEY}
-  #   ports:
-  #     - "8000:8000"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   networks:
-  #     - biagent
-  #   volumes:
-  #     - ./backend:/app
-  #   command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-  # Frontend (for production deployment)
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: biagent-frontend
-  #   ports:
-  #     - "3000:80"
-  #   depends_on:
-  #     - api
-  #   networks:
-  #     - biagent
+    networks:
+      - agentmedha-network
 
 volumes:
   postgres_data:
-    driver: local
   redis_data:
-    driver: local
   prometheus_data:
-    driver: local
   grafana_data:
-    driver: local
 
 networks:
-  biagent:
+  agentmedha-network:
     driver: bridge
-

@@ -11,17 +11,18 @@ python = "^3.11"
 # API Framework
 fastapi = "^0.104.0"
 uvicorn = {extras = ["standard"], version = "^0.24.0"}
-pydantic = "^2.5.0"
+pydantic = {extras = ["email"], version = "^2.5.0"}
 pydantic-settings = "^2.1.0"
 
 # AI/LLM
 openai = "^1.12.0"
-langchain = "^0.1.0"
+langchain = "^0.2.0"
 langgraph = "^0.1.0"
-langchain-openai = "^0.0.2"
-langchain-community = "^0.0.10"
+langchain-openai = "^0.1.0"
+langchain-community = "^0.2.0"
 vanna = "^0.3.0"
 sentence-transformers = "^2.2.2"
+tiktoken = "^0.7.0"  # Token counting for GPT models
 
 # Database
 sqlalchemy = "^2.0.25"
@@ -31,6 +32,7 @@ pymysql = "^1.1.0"  # MySQL
 snowflake-connector-python = "^3.7.0"  # Snowflake
 google-cloud-bigquery = "^3.14.0"  # BigQuery
 alembic = "^1.13.0"  # Migrations
+pgvector = "^0.2.4"  # Vector similarity search in PostgreSQL
 
 # Caching & Storage
 redis = {extras = ["hiredis"], version = "^5.0.1"}
@@ -38,7 +40,8 @@ pinecone-client = "^3.0.0"
 
 # Authentication & Security
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
-passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+bcrypt = "3.2.2"
+passlib = "^1.7.4"
 python-multipart = "^0.0.6"
 cryptography = "^41.0.0"
 

@@ -70,13 +70,14 @@ app = FastAPI(
 # Middleware
 
 # CORS - Principle #7: Port Binding
+# Allow frontend to communicate with backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
-    expose_headers=["X-Request-ID"],
+    expose_headers=["*"],
 )
 
 # GZip compression
