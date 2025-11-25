@@ -1692,3 +1692,150 @@ body {
   background: var(--primary-color);
   border-radius: 4px;
 }
+
+/* Animation Utilities */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Nano Banana Custom Styles */
+.bg-gradient-nano {
+  background: linear-gradient(135deg, #facc15 0%, #9333ea 100%);
+}
+
+/* Custom Scrollbar for Content Studio */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Strict Nano Banana Design System */
+
+.nano-button {
+  background: linear-gradient(90deg, #FDE047 0%, #A855F7 100%);
+  border-radius: 12px;
+  color: #000;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 12px 24px;
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+}
+
+.nano-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.6);
+  filter: brightness(1.1);
+}
+
+.nano-button:active {
+  transform: translateY(0);
+}
+
+.nano-input {
+  background: #0A0A0A;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  padding: 16px;
+  font-size: 14px;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.nano-input:focus {
+  outline: none;
+  border-color: rgba(253, 224, 71, 0.5);
+  box-shadow: 0 0 0 1px rgba(253, 224, 71, 0.2);
+}
+
+.nano-sidebar-item {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.nano-sidebar-item.active {
+  color: #fff;
+}
+
+.nano-sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background: #FDE047;
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 10px rgba(253, 224, 71, 0.6);
+}
+
+.nano-sidebar-item.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(253, 224, 71, 0.1) 0%, transparent 100%);
+  opacity: 1;
+}
+
+.nano-toggle {
+  width: 40px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nano-toggle.active {
+  background: #A3E635; /* Lime green */
+}
+
+.nano-toggle-thumb {
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.nano-toggle.active .nano-toggle-thumb {
+  left: 22px;
+}

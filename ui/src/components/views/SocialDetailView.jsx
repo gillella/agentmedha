@@ -5,9 +5,9 @@ import { Twitter } from 'lucide-react';
 
 const SocialDetailView = () => {
     return (
-        <DetailViewLayout title="Social Media" icon={Twitter} currentDomain="social">
+        <div className="h-full w-full">
             <TwitterDashboard />
-        </DetailViewLayout>
+        </div>
     );
 };
 

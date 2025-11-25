@@ -47,7 +47,7 @@ TOKEN_PATH = os.environ.get(
 
 
 class GmailService:
-    """Gmail API service wrapper."""
+    """Gmail API service wrapper with multi-account support."""
     
     _instance = None
     
@@ -62,39 +62,70 @@ class GmailService:
             return
         self.services = {}
         self.credentials = {}
-        self._load_credentials()
+        self.account_emails = {}  # account_id -> email
+        self._load_all_credentials()
         self._initialized = True
     
-    def _load_credentials(self):
-        """Load OAuth credentials from token file."""
-        try:
-            if os.path.exists(TOKEN_PATH):
-                with open(TOKEN_PATH, 'r') as f:
-                    token_data = json.load(f)
-                
-                creds = Credentials(
-                    token=token_data.get('token'),
-                    refresh_token=token_data.get('refresh_token'),
-                    token_uri=token_data.get('token_uri'),
-                    client_id=token_data.get('client_id'),
-                    client_secret=token_data.get('client_secret'),
-                    scopes=token_data.get('scopes', SCOPES)
-                )
-                
-                if creds.expired and creds.refresh_token:
-                    creds.refresh(Request())
-                    self._save_token(creds, 'primary')
-                
-                self.credentials['primary'] = creds
-                self.services['primary'] = build('gmail', 'v1', credentials=creds)
-                logger.info("Gmail service initialized for primary account")
-            else:
-                logger.warning(f"Token file not found at {TOKEN_PATH}")
-        except Exception as e:
-            logger.error(f"Failed to load credentials: {e}")
-            raise
+    def _load_all_credentials(self):
+        """Load OAuth credentials from all token files."""
+        credentials_dir = os.path.dirname(TOKEN_PATH)
+        
+        # Load primary token
+        if os.path.exists(TOKEN_PATH):
+            self._load_token_file(TOKEN_PATH, 'primary')
+        
+        # Load additional account tokens
+        import glob
+        token_pattern = os.path.join(credentials_dir, 'gmail_token_*.json')
+        for token_file in glob.glob(token_pattern):
+            # Extract account name from filename
+            basename = os.path.basename(token_file)
+            # gmail_token_arvinda_gillella_at_gmail_com.json -> arvinda_gillella
+            account_name = basename.replace('gmail_token_', '').replace('.json', '')
+            account_name = account_name.split('_at_')[0]  # Get part before @
+            self._load_token_file(token_file, account_name)
+        
+        logger.info(f"Loaded {len(self.services)} Gmail account(s): {list(self.services.keys())}")
     
-    def _save_token(self, creds: Credentials, account_id: str):
+    def _load_token_file(self, token_path: str, account_id: str):
+        """Load a single token file."""
+        try:
+            with open(token_path, 'r') as f:
+                token_data = json.load(f)
+            
+            creds = Credentials(
+                token=token_data.get('token'),
+                refresh_token=token_data.get('refresh_token'),
+                token_uri=token_data.get('token_uri'),
+                client_id=token_data.get('client_id'),
+                client_secret=token_data.get('client_secret'),
+                scopes=token_data.get('scopes', SCOPES)
+            )
+            
+            if creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+                self._save_token(creds, token_path)
+            
+            self.credentials[account_id] = creds
+            self.services[account_id] = build('gmail', 'v1', credentials=creds)
+            
+            # Get email for this account
+            try:
+                profile = self.services[account_id].users().getProfile(userId='me').execute()
+                email = profile.get('emailAddress', account_id)
+                self.account_emails[account_id] = email
+                # Also allow lookup by email
+                self.services[email] = self.services[account_id]
+                self.credentials[email] = self.credentials[account_id]
+                logger.info(f"Loaded account: {email} (id: {account_id})")
+            except Exception as e:
+                logger.warning(f"Could not get email for {account_id}: {e}")
+                self.account_emails[account_id] = account_id
+                
+        except Exception as e:
+            logger.error(f"Failed to load token {token_path}: {e}")
+    
+    def _save_token(self, creds: Credentials, token_path: str):
         """Save refreshed token."""
         try:
             token_data = {
@@ -104,18 +135,25 @@ class GmailService:
                 'client_id': creds.client_id,
                 'client_secret': creds.client_secret,
                 'scopes': list(creds.scopes) if creds.scopes else SCOPES,
-                'account': account_id,
                 'expiry': creds.expiry.isoformat() if creds.expiry else None
             }
-            with open(TOKEN_PATH, 'w') as f:
+            with open(token_path, 'w') as f:
                 json.dump(token_data, f)
         except Exception as e:
             logger.error(f"Failed to save token: {e}")
     
     def get_service(self, account_id: str = 'primary'):
         if account_id not in self.services:
-            raise ValueError(f"Account '{account_id}' not configured")
+            # Try to find by partial match
+            for key in self.services.keys():
+                if account_id in key or key in account_id:
+                    return self.services[key]
+            raise ValueError(f"Account '{account_id}' not configured. Available: {list(self.account_emails.values())}")
         return self.services[account_id]
+    
+    def get_all_accounts(self) -> list:
+        """Get list of all configured accounts."""
+        return list(set(self.account_emails.values()))
 
 
 # Initialize Gmail service globally
@@ -234,18 +272,29 @@ async def list_accounts():
         return {"accounts": [], "error": "Gmail service not initialized"}
     
     accounts = []
-    for account_id, service in gmail_service.services.items():
+    seen_emails = set()
+    
+    for account_id in gmail_service.account_emails.keys():
         try:
+            service = gmail_service.services[account_id]
             profile = service.users().getProfile(userId='me').execute()
+            email = profile.get('emailAddress')
+            
+            # Avoid duplicates
+            if email in seen_emails:
+                continue
+            seen_emails.add(email)
+            
             accounts.append({
                 'id': account_id,
-                'email': profile.get('emailAddress'),
+                'email': email,
                 'messages_total': profile.get('messagesTotal'),
                 'threads_total': profile.get('threadsTotal')
             })
         except Exception as e:
             logger.error(f"Failed to get profile for {account_id}: {e}")
-    return {"accounts": accounts}
+    
+    return {"accounts": accounts, "count": len(accounts)}
 
 
 @app.get("/messages")

@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """
 Gmail OAuth Setup Script for agentMedha
-This script helps set up OAuth credentials for the Gmail MCP server.
-
-Usage:
-    python scripts/setup_gmail_oauth.py
+Supports both Desktop and Web application OAuth credentials.
 """
 
 import os
@@ -12,13 +9,12 @@ import json
 import sys
 from pathlib import Path
 
-# Add support for Google auth flow
 try:
     from google_auth_oauthlib.flow import InstalledAppFlow
     from google.oauth2.credentials import Credentials
 except ImportError:
     print("Installing required packages...")
-    os.system("pip install google-auth-oauthlib google-auth")
+    os.system("pip install google-auth-oauthlib google-auth google-api-python-client")
     from google_auth_oauthlib.flow import InstalledAppFlow
     from google.oauth2.credentials import Credentials
 
@@ -38,86 +34,110 @@ OAUTH_CREDENTIALS_PATH = CREDENTIALS_DIR / "gmail_oauth_credentials.json"
 TOKEN_PATH = CREDENTIALS_DIR / "gmail_oauth_token.json"
 
 
-def print_setup_instructions():
-    """Print instructions for creating OAuth credentials."""
-    print("""
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    Gmail OAuth Setup for agentMedha                          ║
-╠══════════════════════════════════════════════════════════════════════════════╣
-║                                                                              ║
-║  To use the Gmail MCP server, you need to create OAuth credentials:          ║
-║                                                                              ║
-║  1. Go to: https://console.cloud.google.com/apis/credentials                 ║
-║                                                                              ║
-║  2. Create a new project (or select existing one)                            ║
-║                                                                              ║
-║  3. Enable the Gmail API:                                                    ║
-║     - Go to "Library" → Search "Gmail API" → Enable                          ║
-║                                                                              ║
-║  4. Configure OAuth consent screen:                                          ║
-║     - Go to "OAuth consent screen"                                           ║
-║     - Choose "External" or "Internal" (for workspace)                        ║
-║     - Fill in app name: "agentMedha Gmail"                                   ║
-║     - Add your email as test user                                            ║
-║     - Add scopes: Gmail API (all scopes)                                     ║
-║                                                                              ║
-║  5. Create OAuth credentials:                                                ║
-║     - Go to "Credentials" → "Create Credentials" → "OAuth client ID"         ║
-║     - Application type: "Desktop app"                                        ║
-║     - Name: "agentMedha Gmail Client"                                        ║
-║     - Click "Create"                                                         ║
-║                                                                              ║
-║  6. Download the JSON file and save it as:                                   ║
-║     credentials/gmail_oauth_credentials.json                                 ║
-║                                                                              ║
-║  7. Run this script again to complete the OAuth flow                         ║
-║                                                                              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-""")
-
-
-def run_oauth_flow():
+def run_oauth_flow(account_name: str = "primary"):
     """Run the OAuth flow to get tokens."""
-    print("\n🔐 Starting OAuth flow...")
+    print(f"\n🔐 Starting OAuth flow for account: {account_name}")
     print(f"Using credentials from: {OAUTH_CREDENTIALS_PATH}")
     
+    # Load credentials file
+    with open(OAUTH_CREDENTIALS_PATH) as f:
+        creds_data = json.load(f)
+    
+    # Determine client type and get config
+    if 'web' in creds_data:
+        client_config = creds_data
+        redirect_uri = creds_data['web']['redirect_uris'][0]
+        print(f"Using Web application credentials")
+        print(f"Redirect URI: {redirect_uri}")
+    elif 'installed' in creds_data:
+        client_config = creds_data
+        redirect_uri = None
+        print(f"Using Desktop application credentials")
+    else:
+        print("❌ Invalid credentials format")
+        return None
+    
     # Create the flow
-    flow = InstalledAppFlow.from_client_secrets_file(
-        str(OAUTH_CREDENTIALS_PATH),
-        SCOPES
+    flow = InstalledAppFlow.from_client_config(
+        client_config,
+        SCOPES,
+        redirect_uri=redirect_uri
     )
     
     # Run the local server flow
     print("\n🌐 A browser window will open for authentication...")
-    print("   If it doesn't open automatically, check your terminal for a URL.\n")
+    print("   Please sign in with your Gmail account.\n")
     
-    creds = flow.run_local_server(
-        port=8080,
-        prompt='consent',
-        success_message='Authentication successful! You can close this window.'
-    )
+    try:
+        creds = flow.run_local_server(
+            port=8080,
+            prompt='consent',
+            success_message='✅ Authentication successful! You can close this window.',
+            open_browser=True
+        )
+    except Exception as e:
+        print(f"❌ OAuth flow failed: {e}")
+        return None
+    
+    # Get client info for token
+    if 'web' in creds_data:
+        client_id = creds_data['web']['client_id']
+        client_secret = creds_data['web']['client_secret']
+    else:
+        client_id = creds_data['installed']['client_id']
+        client_secret = creds_data['installed']['client_secret']
     
     # Save the token
     token_data = {
         'token': creds.token,
         'refresh_token': creds.refresh_token,
         'token_uri': creds.token_uri,
-        'client_id': creds.client_id,
-        'client_secret': creds.client_secret,
+        'client_id': client_id,
+        'client_secret': client_secret,
         'scopes': list(creds.scopes) if creds.scopes else SCOPES,
-        'account': 'primary',
+        'account': account_name,
         'expiry': creds.expiry.isoformat() if creds.expiry else None
     }
     
-    with open(TOKEN_PATH, 'w') as f:
+    # Save token
+    token_file = TOKEN_PATH if account_name == "primary" else CREDENTIALS_DIR / f"gmail_token_{account_name}.json"
+    with open(token_file, 'w') as f:
         json.dump(token_data, f, indent=2)
     
-    print(f"\n✅ Token saved to: {TOKEN_PATH}")
-    print("\n🎉 Gmail OAuth setup complete!")
-    print("\nYou can now start the Gmail MCP server:")
-    print("  docker-compose up -d gmail-mcp")
-    
-    return True
+    print(f"\n✅ Token saved to: {token_file}")
+    return token_data
+
+
+def test_gmail_access(token_file: Path):
+    """Test Gmail access with the token."""
+    try:
+        from googleapiclient.discovery import build
+        from google.auth.transport.requests import Request
+        
+        with open(token_file) as f:
+            token_data = json.load(f)
+        
+        creds = Credentials(
+            token=token_data.get('token'),
+            refresh_token=token_data.get('refresh_token'),
+            token_uri=token_data.get('token_uri'),
+            client_id=token_data.get('client_id'),
+            client_secret=token_data.get('client_secret'),
+            scopes=token_data.get('scopes', SCOPES)
+        )
+        
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        
+        service = build('gmail', 'v1', credentials=creds)
+        profile = service.users().getProfile(userId='me').execute()
+        
+        print(f"✅ Successfully connected to: {profile['emailAddress']}")
+        print(f"   Total messages: {profile.get('messagesTotal', 'N/A')}")
+        return profile['emailAddress']
+    except Exception as e:
+        print(f"❌ Gmail test failed: {e}")
+        return None
 
 
 def main():
@@ -133,40 +153,47 @@ def main():
     if not OAUTH_CREDENTIALS_PATH.exists():
         print(f"\n❌ OAuth credentials file not found at:")
         print(f"   {OAUTH_CREDENTIALS_PATH}")
-        print_setup_instructions()
         return False
     
-    # Validate the credentials file
-    try:
-        with open(OAUTH_CREDENTIALS_PATH) as f:
-            creds_data = json.load(f)
-        
-        if 'installed' not in creds_data and 'web' not in creds_data:
-            print("\n❌ Invalid credentials file format.")
-            print("   Expected 'installed' or 'web' client credentials.")
-            print_setup_instructions()
-            return False
-        
-        print(f"\n✅ Found credentials file")
-        client_type = 'installed' if 'installed' in creds_data else 'web'
-        project_id = creds_data[client_type].get('project_id', 'Unknown')
-        print(f"   Project: {project_id}")
-        
-    except json.JSONDecodeError:
-        print("\n❌ Invalid JSON in credentials file.")
-        print_setup_instructions()
-        return False
+    print(f"\n✅ Found credentials file: {OAUTH_CREDENTIALS_PATH}")
     
-    # Check if token already exists
+    # Check existing token
     if TOKEN_PATH.exists():
-        print(f"\n⚠️  Token file already exists at: {TOKEN_PATH}")
-        response = input("   Do you want to re-authenticate? (y/N): ").strip().lower()
-        if response != 'y':
-            print("\n   Keeping existing token.")
-            return True
+        print(f"\n📋 Existing token found. Testing...")
+        email = test_gmail_access(TOKEN_PATH)
+        if email:
+            print(f"\n✅ Already authenticated as: {email}")
+            response = input("\nDo you want to re-authenticate or add another account? (y/N): ").strip().lower()
+            if response != 'y':
+                return True
     
     # Run OAuth flow
-    return run_oauth_flow()
+    print("\n" + "-"*60)
+    print("Starting authentication...")
+    print("-"*60)
+    
+    result = run_oauth_flow("primary")
+    
+    if result:
+        print("\n" + "-"*60)
+        print("Testing Gmail access...")
+        print("-"*60)
+        test_gmail_access(TOKEN_PATH)
+        
+        print("\n🎉 Gmail OAuth setup complete!")
+        print("\nTo restart the Gmail MCP server, run:")
+        print("  docker-compose restart gmail-mcp")
+        
+        # Ask about additional accounts
+        add_more = input("\nDo you want to add another Gmail account? (y/N): ").strip().lower()
+        if add_more == 'y':
+            account_name = input("Enter account name (e.g., 'work', 'personal'): ").strip()
+            if account_name:
+                run_oauth_flow(account_name)
+        
+        return True
+    
+    return False
 
 
 if __name__ == "__main__":
