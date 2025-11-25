@@ -9,3 +9,22 @@ services:
     volumes:
       - ./qdrant_data:/qdrant/storage
     restart: always
+
+  gmail-mcp:
+    build:
+      context: ./mcp_servers/gmail
+      dockerfile: Dockerfile
+    container_name: agent_medha_gmail_mcp
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./credentials:/app/credentials:ro
+    environment:
+      - GMAIL_CREDENTIALS_PATH=/app/credentials/gmail_oauth_credentials.json
+      - GMAIL_TOKEN_PATH=/app/credentials/gmail_oauth_token.json
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

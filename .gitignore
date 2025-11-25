@@ -161,3 +161,9 @@ test_*.py
 .specstory/
 .cursorindexingignore
 uv.lock
+
+# Credentials (sensitive - never commit)
+credentials/
+*.credentials.json
+*.token.json
+*_oauth_*.json
