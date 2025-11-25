@@ -18,10 +18,14 @@ from agent_medha.memory import MemoryManager
 memory = MemoryManager()
 
 from agent_medha.workers.social_media import SocialMediaManager
+from agent_medha.workers.email import EmailManager
 
 # Initialize Workers
 social_manager = SocialMediaManager()
 social_tools = social_manager.get_tools()
+
+email_manager = EmailManager()
+email_tools = email_manager.get_tools()
 
 # Create Social Media Agent Node
 # We use a ReAct agent for the worker to allow it to use tools autonomously
@@ -37,6 +41,20 @@ def social_media_node(state: AgentState):
     # We need to pass the last message to the worker
     result = social_agent.invoke(state)
     # The result from create_react_agent is the final state, we want to return the messages
+    return {"messages": result["messages"]}
+
+# Create Email Agent Node
+email_agent = create_react_agent(
+    model=ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", google_api_key=os.getenv("GEMINI_API_KEY")),
+    tools=email_tools
+)
+
+def email_node(state: AgentState):
+    """
+    Executes the email worker agent.
+    Handles email reading, searching, sending, and management.
+    """
+    result = email_agent.invoke(state)
     return {"messages": result["messages"]}
 
 # --- Memory Retrieval Node ---
@@ -69,7 +87,13 @@ def supervisor_node(state: AgentState):
     if isinstance(last_message, HumanMessage):
         content = last_message.content.lower()
         
-        # Routing Logic
+        # Email Worker Routing
+        email_keywords = ["email", "gmail", "inbox", "unread", "send email", "draft email", 
+                         "mail", "message from", "reply to", "check email", "search email"]
+        if any(kw in content for kw in email_keywords):
+            return {"next_step": "email"}
+        
+        # Social Media Worker Routing
         if "post" in content or "tweet" in content or "twitter" in content or " x " in content or "draft" in content or "research" in content:
             return {"next_step": "social_media"}
             
@@ -127,6 +151,7 @@ def create_graph():
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("responder", response_node)
     workflow.add_node("social_media", social_media_node)
+    workflow.add_node("email", email_node)
     workflow.add_node("save", save_node)
 
     # Start -> Retrieve -> Supervisor
@@ -140,6 +165,7 @@ def create_graph():
         {
             "respond": "responder",
             "social_media": "social_media",
+            "email": "email",
             "FINISH": END
         }
     )
@@ -149,6 +175,9 @@ def create_graph():
     
     # Social Media -> Save -> End
     workflow.add_edge("social_media", "save")
+    
+    # Email -> Save -> End
+    workflow.add_edge("email", "save")
     
     workflow.add_edge("save", END)
 

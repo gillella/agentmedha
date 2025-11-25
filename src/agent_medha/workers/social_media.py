@@ -62,17 +62,28 @@ def research_topic(topic: str) -> str:
     return response.text
 
 @tool
-def draft_post(topic: str, research_notes: str) -> str:
+def draft_post(topic: str, research_notes: str, platform: str = "twitter") -> str:
     """
     Drafts a social media post based on the topic and research notes.
+    Platform can be 'twitter', 'linkedin', or 'instagram'.
     """
     model = genai.GenerativeModel("models/gemini-2.0-flash-exp")
+    
+    platform_instructions = {
+        "twitter": "Keep it under 280 characters. Include hashtags. Focus on punchy, viral content.",
+        "linkedin": "Professional tone. Can be longer (up to 3000 chars). Focus on industry insights and professional value. Use bullet points if needed.",
+        "instagram": "Visual-first caption. Engaging and personal. Use many relevant hashtags. Include a 'Link in bio' call to action if relevant."
+    }
+    
+    instruction = platform_instructions.get(platform.lower(), platform_instructions["twitter"])
+    
     prompt = f"""
-    Draft a viral, engaging Twitter/X post about '{topic}'.
+    Draft a engaging {platform} post about '{topic}'.
     Use these research notes:
     {research_notes}
     
-    Keep it under 280 characters. Include hashtags.
+    Platform Instructions:
+    {instruction}
     """
     response = model.generate_content(prompt)
     return response.text
@@ -93,6 +104,24 @@ def post_tweet(content: str) -> str:
         print(f"DEBUG: Error posting tweet: {e}")
         return f"Error posting tweet: {str(e)}"
 
+@tool
+def post_linkedin(content: str) -> str:
+    """
+    Posts a message to LinkedIn.
+    """
+    # Mock implementation
+    print(f"DEBUG: Mock Posting to LinkedIn: {content}")
+    return "Successfully posted to LinkedIn (Mocked)"
+
+@tool
+def post_instagram(content: str, image_url: str = None) -> str:
+    """
+    Posts a message and optional image to Instagram.
+    """
+    # Mock implementation
+    print(f"DEBUG: Mock Posting to Instagram: {content} | Image: {image_url}")
+    return "Successfully posted to Instagram (Mocked)"
+
 class SocialMediaManager:
     def get_tools(self):
-        return [generate_image, research_topic, draft_post, post_tweet]
+        return [generate_image, research_topic, draft_post, post_tweet, post_linkedin, post_instagram]
