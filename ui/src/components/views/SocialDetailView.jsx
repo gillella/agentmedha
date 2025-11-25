@@ -1,12 +1,10 @@
 import React from 'react';
-import DetailViewLayout from '../DetailViewLayout';
-import TwitterDashboard from '../TwitterDashboard';
-import { Twitter } from 'lucide-react';
+import SocialLayout from '../social/SocialLayout';
 
 const SocialDetailView = () => {
     return (
         <div className="h-full w-full">
-            <TwitterDashboard />
+            <SocialLayout />
         </div>
     );
 };

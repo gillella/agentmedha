@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Settings, Activity, Brain, Zap, Mail } from 'lucide-react';
+import { LayoutDashboard, Settings, Activity, Brain, Zap, Mail, Share2 } from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import SettingsPanel from './components/SettingsPanel';
 import SocialDetailView from './components/views/SocialDetailView';
@@ -61,6 +61,10 @@ const AppContent = () => {
                     <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
                         <LayoutDashboard size={20} />
                         <span>Dashboard</span>
+                    </NavLink>
+                    <NavLink to="/social" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <Share2 size={20} />
+                        <span>Social Media</span>
                     </NavLink>
                     <NavLink to="/email-manager" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                         <Mail size={20} />

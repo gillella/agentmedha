@@ -122,6 +122,17 @@ def post_instagram(content: str, image_url: str = None) -> str:
     print(f"DEBUG: Mock Posting to Instagram: {content} | Image: {image_url}")
     return "Successfully posted to Instagram (Mocked)"
 
+@tool
+def generate_video(prompt: str) -> str:
+    """
+    Generates a video based on the prompt using the Veo3 model.
+    Returns a URL to the generated video.
+    """
+    # Mock implementation for Veo3
+    print(f"DEBUG: generate_video called with prompt: {prompt}")
+    # Return a placeholder video URL or a message indicating it's a mock
+    return "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+
 class SocialMediaManager:
     def get_tools(self):
-        return [generate_image, research_topic, draft_post, post_tweet, post_linkedin, post_instagram]
+        return [generate_image, research_topic, draft_post, post_tweet, post_linkedin, post_instagram, generate_video]
