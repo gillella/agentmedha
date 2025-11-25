@@ -157,7 +157,8 @@ ui/node_modules/
 *.png
 debug_*.py
 list_models.py
-test_*.py
+# Ignore test files in root, but not in tests/ directory
+/test_*.py
 .specstory/
 .cursorindexingignore
 uv.lock

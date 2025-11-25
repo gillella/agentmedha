@@ -42,7 +42,6 @@ const AgentDashboard = () => {
     });
 
     const handleViewDetails = (agentId) => {
-        console.log('View details for agent:', agentId);
         // TODO: Implement agent details modal or navigation
     };
 
