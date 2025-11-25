@@ -13,6 +13,14 @@ import { gmailApi } from '../../services/gmailApi';
 // Account colors for visual distinction
 const ACCOUNT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'];
 
+// Helper to decode HTML entities
+const decodeHtmlEntities = (text) => {
+    if (!text) return text;
+    const textArea = document.createElement('textarea');
+    textArea.innerHTML = text;
+    return textArea.value;
+};
+
 const FOLDERS = [
     { id: 'inbox', name: 'Inbox', icon: Inbox, query: 'in:inbox' },
     { id: 'starred', name: 'Starred', icon: Star, query: 'is:starred' },
@@ -78,23 +86,26 @@ const EmailManagerView = () => {
                         console.warn('Could not load labels:', e);
                     }
                 }
+                // Note: Don't set isLoading(false) here - let loadEmails handle it
+            } else {
+                setIsLoading(false);
             }
             setError(null);
         } catch (err) {
             console.error('Failed to load accounts:', err);
             setError('Failed to connect to Gmail server');
             setIsConnected(false);
-        } finally {
             setIsLoading(false);
         }
     };
 
-    const loadEmails = async () => {
+    const loadEmails = async (search = null) => {
         try {
             setIsLoading(true);
             const folder = FOLDERS.find(f => f.id === selectedFolder);
             const query = folder?.query || '';
-            const combinedQuery = searchQuery ? `${query} ${searchQuery}`.trim() : query;
+            const searchTerm = search !== null ? search : searchQuery;
+            const combinedQuery = searchTerm ? `${query} ${searchTerm}`.trim() : query;
             
             let allEmails = [];
             
@@ -110,6 +121,8 @@ const EmailManagerView = () => {
                             });
                             return (data.messages || []).map(email => ({
                                 ...email,
+                                snippet: decodeHtmlEntities(email.snippet),
+                                subject: decodeHtmlEntities(email.subject),
                                 accountId: acc.id,
                                 accountEmail: acc.email,
                                 accountColor: acc.color,
@@ -134,6 +147,8 @@ const EmailManagerView = () => {
                     });
                     allEmails = (data.messages || []).map(email => ({
                         ...email,
+                        snippet: decodeHtmlEntities(email.snippet),
+                        subject: decodeHtmlEntities(email.subject),
                         accountId: acc.id,
                         accountEmail: acc.email,
                         accountColor: acc.color,
@@ -157,10 +172,13 @@ const EmailManagerView = () => {
         setIsRefreshing(false);
     };
 
-    const handleSearch = useCallback((e) => {
+    const handleSearch = (e) => {
         e.preventDefault();
-        loadEmails();
-    }, [searchQuery, selectedAccount, selectedFolder]);
+        // Get search value from the form input
+        const formData = new FormData(e.target);
+        const search = formData.get('search') || searchQuery;
+        loadEmails(search);
+    };
 
     const handleEmailSelect = async (email) => {
         setSelectedEmail(email);
@@ -266,6 +284,7 @@ const EmailManagerView = () => {
                     <Search size={18} className="email-search-icon" />
                     <input
                         type="text"
+                        name="search"
                         placeholder="Search emails across all accounts..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}

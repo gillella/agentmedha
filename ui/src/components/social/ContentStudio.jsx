@@ -1,84 +1,130 @@
-import React, { useState } from 'react';
-import { Sparkles, Image as ImageIcon, RefreshCw, Send, Wand2, Hash, Type } from 'lucide-react';
+import React from 'react';
+import { Send, Image as ImageIcon, Sparkles, Copy } from 'lucide-react';
+import PlatformSelector from './PlatformSelector';
 
 const ContentStudio = ({
     topic, setTopic,
     content, setContent,
     image, setImage,
     isGenerating, setIsGenerating,
-    onGenerateDraft, onGenerateImage, onPost,
-    statusMessage, lastPostStatus
+    onGenerateDraft,
+    onGenerateImage,
+    onPost,
+    statusMessage,
+    lastPostStatus,
+    activePlatform,
+    setActivePlatform,
+    onCopyToPlatform
 }) => {
-    const [imagePrompt, setImagePrompt] = useState('');
-    const [useAIImage, setUseAIImage] = useState(true);
+
+    const handleCopy = (targetPlatform) => {
+        onCopyToPlatform(targetPlatform);
+    };
 
     return (
-        <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#1a1d24]">
-            {/* Header */}
-            <div className="px-8 pt-10 pb-8 border-b border-white/[0.08]">
-                <h1 className="text-[26px] font-bold text-white tracking-tight">Content Studio</h1>
+        <div className="h-full flex flex-col bg-slate-900/50 backdrop-blur-sm p-6">
+            <div className="mb-6">
+                <h2 className="text-2xl font-bold text-white mb-2">Content Studio</h2>
+                <p className="text-white/40 text-sm">Create and schedule content for your social channels.</p>
             </div>
 
-            <div className="flex-1 px-8 py-8 flex flex-col gap-8">
-                {/* Tweet Text Section */}
-                <div className="flex flex-col gap-4">
-                    <label className="text-[15px] font-medium text-white/90">Tweet Text</label>
+            {/* Platform Selector */}
+            <PlatformSelector activePlatform={activePlatform} setActivePlatform={setActivePlatform} />
 
+            {/* Input Area */}
+            <div className="flex-1 flex flex-col space-y-4 overflow-y-auto pr-2">
+                {/* Topic Input */}
+                <div className="space-y-2">
+                    <label className="text-xs font-semibold text-white/60 uppercase tracking-wider">Topic / Idea</label>
+                    <div className="flex space-x-2">
+                        <input
+                            type="text"
+                            value={topic}
+                            onChange={(e) => setTopic(e.target.value)}
+                            placeholder="What do you want to post about?"
+                            className="flex-1 bg-slate-950/50 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-indigo-500 transition-colors"
+                        />
+                        <button
+                            onClick={onGenerateDraft}
+                            disabled={isGenerating || !topic.trim()}
+                            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 rounded-lg flex items-center justify-center transition-colors"
+                            title="Generate Draft"
+                        >
+                            <Sparkles size={20} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Content Editor */}
+                <div className="flex-1 flex flex-col space-y-2 min-h-[200px]">
+                    <div className="flex justify-between items-center">
+                        <label className="text-xs font-semibold text-white/60 uppercase tracking-wider">Post Content ({activePlatform})</label>
+                        <div className="flex space-x-2">
+                            {['twitter', 'linkedin', 'instagram'].filter(p => p !== activePlatform).map(p => (
+                                <button
+                                    key={p}
+                                    onClick={() => handleCopy(p)}
+                                    className="text-xs text-white/40 hover:text-white flex items-center space-x-1 transition-colors"
+                                    title={`Copy current content to ${p}`}
+                                >
+                                    <Copy size={12} />
+                                    <span className="capitalize">To {p}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                     <textarea
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        placeholder="Hello ironmarediately for NanoBananaAI"
-                        className="nano-input h-40 resize-none"
-                        style={{ fontFamily: 'inherit' }}
+                        placeholder={`Write your ${activePlatform} post here...`}
+                        className="flex-1 bg-slate-950/50 border border-white/10 rounded-lg p-4 text-white placeholder-white/20 focus:outline-none focus:border-indigo-500 transition-colors resize-none font-mono text-sm leading-relaxed"
                     />
-
-                    <button
-                        onClick={onGenerateDraft}
-                        disabled={isGenerating}
-                        className="nano-button"
-                    >
-                        {isGenerating ? <RefreshCw size={18} className="animate-spin mx-auto" /> : 'Generate'}
-                    </button>
                 </div>
 
-                {/* AI Image Prompt Section */}
-                <div className="flex flex-col gap-4 pt-4">
-                    <div className="flex items-center justify-between">
-                        <label className="text-[15px] font-medium text-white/90">AI Image Prompt</label>
-                        <div className="flex items-center gap-3">
-                            <span className="text-[11px] text-white/50 font-semibold uppercase tracking-widest">AI</span>
-                            <div
-                                onClick={() => setUseAIImage(!useAIImage)}
-                                className={`nano-toggle ${useAIImage ? 'active' : ''}`}
+                {/* Image Generation */}
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <label className="text-xs font-semibold text-white/60 uppercase tracking-wider">Visuals</label>
+                        <button
+                            onClick={onGenerateImage}
+                            disabled={isGenerating || !topic.trim()}
+                            className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 transition-colors disabled:opacity-50"
+                        >
+                            <ImageIcon size={14} />
+                            <span>Generate AI Image</span>
+                        </button>
+                    </div>
+
+                    {image && (
+                        <div className="relative group rounded-lg overflow-hidden border border-white/10 bg-slate-950/50 h-48 flex items-center justify-center">
+                            <img src={image} alt="Generated" className="h-full w-full object-cover" />
+                            <button
+                                onClick={() => setImage(null)}
+                                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                             >
-                                <div className="nano-toggle-thumb" />
-                            </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
                         </div>
-                    </div>
-
-                    <textarea
-                        value={imagePrompt}
-                        onChange={(e) => setImagePrompt(e.target.value)}
-                        placeholder="Generate 1 image and art ormation with promp."
-                        className="nano-input h-36 resize-none"
-                        style={{ fontFamily: 'inherit' }}
-                    />
-
-                    <button
-                        onClick={() => onGenerateImage(imagePrompt)}
-                        disabled={isGenerating || !useAIImage}
-                        className={`nano-button ${!useAIImage ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                        {isGenerating ? <RefreshCw size={18} className="animate-spin mx-auto" /> : 'Generate'}
-                    </button>
+                    )}
                 </div>
+            </div>
 
-                {/* Status Message */}
-                {statusMessage && (
-                    <div className={`text-xs text-center mt-2 ${lastPostStatus === 'error' ? 'text-red-400' : 'text-green-400'}`}>
-                        {statusMessage}
-                    </div>
-                )}
+            {/* Actions */}
+            <div className="mt-6 pt-6 border-t border-white/10 flex justify-between items-center">
+                <div className={`text-sm ${lastPostStatus === 'success' ? 'text-green-400' :
+                        lastPostStatus === 'error' ? 'text-red-400' :
+                            'text-white/40'
+                    }`}>
+                    {statusMessage}
+                </div>
+                <button
+                    onClick={onPost}
+                    disabled={isGenerating || !content.trim()}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg font-medium flex items-center space-x-2 shadow-lg shadow-indigo-500/20 transition-all transform active:scale-95"
+                >
+                    <Send size={18} />
+                    <span>Post to {activePlatform.charAt(0).toUpperCase() + activePlatform.slice(1)}</span>
+                </button>
             </div>
         </div>
     );

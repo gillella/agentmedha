@@ -7,6 +7,7 @@ const TwitterDashboard = () => {
     const [activeTab, setActiveTab] = useState('studio');
 
     // Studio State
+    const [activePlatform, setActivePlatform] = useState('twitter');
     const [topic, setTopic] = useState('');
     const [content, setContent] = useState('');
     const [generatedImage, setGeneratedImage] = useState(null);
@@ -14,17 +15,40 @@ const TwitterDashboard = () => {
     const [statusMessage, setStatusMessage] = useState('');
     const [lastPostStatus, setLastPostStatus] = useState(null);
 
+    // Store drafts for each platform to switch back and forth without losing work
+    const [drafts, setDrafts] = useState({
+        twitter: '',
+        linkedin: '',
+        instagram: ''
+    });
+
+    // Update content when switching platforms
+    const handlePlatformChange = (newPlatform) => {
+        // Save current content to draft
+        setDrafts(prev => ({ ...prev, [activePlatform]: content }));
+        // Load new platform content
+        setContent(drafts[newPlatform] || '');
+        setActivePlatform(newPlatform);
+        setStatusMessage('');
+    };
+
+    const handleCopyToPlatform = (targetPlatform) => {
+        setDrafts(prev => ({ ...prev, [targetPlatform]: content }));
+        setStatusMessage(`Copied to ${targetPlatform}!`);
+        setTimeout(() => setStatusMessage(''), 2000);
+    };
+
     const handleGenerateDraft = async () => {
         if (!topic.trim()) return;
         setIsGenerating(true);
-        setStatusMessage('Maya is researching and drafting...');
+        setStatusMessage(`Maya is drafting for ${activePlatform}...`);
 
         try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    message: `Research and draft a tweet about: ${topic}`,
+                    message: `Research and draft a ${activePlatform} post about: ${topic}`,
                     thread_id: "social_studio"
                 })
             });
@@ -52,7 +76,7 @@ const TwitterDashboard = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    message: `Generate an image for a tweet about: ${topic}`,
+                    message: `Generate an image for a ${activePlatform} post about: ${topic}`,
                     thread_id: "social_studio"
                 })
             });
@@ -76,14 +100,14 @@ const TwitterDashboard = () => {
     const handlePost = async () => {
         if (!content.trim()) return;
         setIsGenerating(true);
-        setStatusMessage('Publishing to X...');
+        setStatusMessage(`Publishing to ${activePlatform}...`);
 
         try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    message: `Post this to Twitter: ${content}`,
+                    message: `Post this to ${activePlatform}: ${content}`,
                     thread_id: "social_dashboard"
                 })
             });
@@ -91,7 +115,9 @@ const TwitterDashboard = () => {
             if (response.ok) {
                 setLastPostStatus('success');
                 setStatusMessage('Successfully published!');
+                // Clear content for this platform
                 setContent('');
+                setDrafts(prev => ({ ...prev, [activePlatform]: '' }));
                 setTopic('');
                 setGeneratedImage(null);
             } else {
@@ -127,12 +153,15 @@ const TwitterDashboard = () => {
                                 onPost={handlePost}
                                 statusMessage={statusMessage}
                                 lastPostStatus={lastPostStatus}
+                                activePlatform={activePlatform}
+                                setActivePlatform={handlePlatformChange}
+                                onCopyToPlatform={handleCopyToPlatform}
                             />
                         </div>
 
                         {/* Right: Live Preview (Output) */}
                         <div className="w-1/2 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')] bg-cover bg-center">
-                            <PostPreview content={content} image={generatedImage} />
+                            <PostPreview content={content} image={generatedImage} platform={activePlatform} />
                         </div>
                     </>
                 ) : (
