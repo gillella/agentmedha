@@ -83,14 +83,14 @@ const DashboardView = () => {
 
                 {/* Email Card */}
                 <DashboardCard
-                    title="Email Priority"
+                    title="Email Hub"
                     icon={Mail}
                     color="#3b82f6"
-                    path="/email"
+                    path="/email-manager"
                     stats={[
-                        { value: '3', label: 'Urgent' },
-                        { value: '12', label: 'Unread' },
-                        { value: '24', label: 'Processed' },
+                        { value: '3', label: 'Accounts' },
+                        { value: '20', label: 'Unread' },
+                        { value: '5', label: 'Important' },
                     ]}
                 >
                     <div className="priority-list">
@@ -100,7 +100,7 @@ const DashboardView = () => {
                         </div>
                         <div className="priority-item alert">
                             <span className="priority-dot"></span>
-                            <span>1 Financial Alert</span>
+                            <span>2 Financial Updates</span>
                         </div>
                     </div>
                 </DashboardCard>
