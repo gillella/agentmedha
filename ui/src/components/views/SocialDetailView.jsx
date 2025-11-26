@@ -1,12 +1,12 @@
 import React from 'react';
 import DetailViewLayout from '../DetailViewLayout';
-import TwitterDashboard from '../TwitterDashboard';
-import { Twitter } from 'lucide-react';
+import ContentStudio from '../social/ContentStudio';
+import { Share2 } from 'lucide-react';
 
 const SocialDetailView = () => {
     return (
-        <DetailViewLayout title="Social Media" icon={Twitter} currentDomain="social">
-            <TwitterDashboard />
+        <DetailViewLayout title="Social Media Manager" icon={Share2} currentDomain="social">
+            <ContentStudio />
         </DetailViewLayout>
     );
 };
