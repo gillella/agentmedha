@@ -154,6 +154,8 @@ cython_debug/
 # Project specific
 qdrant_data/
 ui/node_modules/
+ui/dev-dist/
+ui/dist/
 *.png
 debug_*.py
 list_models.py
@@ -161,3 +163,8 @@ test_*.py
 .specstory/
 .cursorindexingignore
 uv.lock
+
+# Credentials (sensitive)
+credentials/
+*.credentials.json
+*.token.json
