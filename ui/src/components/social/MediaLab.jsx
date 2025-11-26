@@ -65,8 +65,12 @@ const MediaLab = ({ onClose, onGenerate, contentContext }) => {
                     type: 'image'
                 };
                 setGeneratedMedia([generatedImage]);
+            } else if (result.detail) {
+                // Error from backend
+                console.error('Image generation failed:', result.detail);
+                alert('Failed to generate image: ' + result.detail);
             } else {
-                console.error('Image generation failed:', result.error);
+                console.error('Image generation failed:', result.error || result);
                 alert('Failed to generate image: ' + (result.error || 'Unknown error'));
             }
         } catch (error) {

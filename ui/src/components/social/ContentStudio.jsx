@@ -27,27 +27,78 @@ const AI_ASSIST_OPTIONS = [
     { id: 'casual', icon: Smile, label: 'Make Casual' },
 ];
 
-const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAria }) => {
+const ContentStudio = ({ 
+    selectedPlatforms, 
+    accounts, 
+    onTogglePlatform, 
+    onShowAria,
+    externalMedia = [],
+    setExternalMedia,
+    externalMediaIds = [],
+    setExternalMediaIds
+}) => {
     // State
     const [content, setContent] = useState('');
-    const [media, setMedia] = useState([]);
     const [showMediaLab, setShowMediaLab] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [previewPlatform, setPreviewPlatform] = useState('twitter');
     const [scheduleType, setScheduleType] = useState('now'); // now, schedule, best
     const [scheduleDate, setScheduleDate] = useState(null);
     
+    // Use external media state if provided, otherwise use local state
+    const [localMedia, setLocalMedia] = useState([]);
+    const [localMediaIds, setLocalMediaIds] = useState([]);
+    
+    // Determine which state to use (external if provided, local otherwise)
+    const media = setExternalMedia ? externalMedia : localMedia;
+    const setMedia = setExternalMedia || setLocalMedia;
+    const uploadedMediaIds = setExternalMediaIds ? externalMediaIds : localMediaIds;
+    const setUploadedMediaIds = setExternalMediaIds || setLocalMediaIds;
+    
     // Twitter integration state
     const [twitterUser, setTwitterUser] = useState(null);
     const [twitterConnected, setTwitterConnected] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
     const [publishResult, setPublishResult] = useState(null); // { success, message, tweetId }
-    const [uploadedMediaIds, setUploadedMediaIds] = useState([]);
 
     // Check Twitter connection on mount
     useEffect(() => {
         checkTwitterConnection();
     }, []);
+    
+    // Auto-upload media when it's added (from sidebar or internal MediaLab)
+    useEffect(() => {
+        const uploadPendingMedia = async () => {
+            if (!twitterConnected || media.length === 0) return;
+            
+            for (const item of media) {
+                // Only upload base64 images that haven't been uploaded yet
+                if (item.url?.startsWith('data:') && !item.uploaded) {
+                    try {
+                        const response = await fetch(item.url);
+                        const blob = await response.blob();
+                        const file = new File([blob], 'generated-image.jpg', { type: blob.type });
+                        
+                        const result = await twitterApi.uploadMedia(file);
+                        if (result.success) {
+                            setUploadedMediaIds(prev => {
+                                if (prev.includes(result.media_id)) return prev;
+                                return [...prev, result.media_id];
+                            });
+                            // Mark as uploaded
+                            item.uploaded = true;
+                            item.mediaId = result.media_id;
+                            console.log('Media auto-uploaded to Twitter:', result.media_id);
+                        }
+                    } catch (error) {
+                        console.error('Failed to auto-upload media:', error);
+                    }
+                }
+            }
+        };
+        
+        uploadPendingMedia();
+    }, [media, twitterConnected]);
 
     const checkTwitterConnection = async () => {
         try {

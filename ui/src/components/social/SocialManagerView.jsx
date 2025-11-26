@@ -42,6 +42,18 @@ const SocialManagerView = () => {
     const [showMediaLab, setShowMediaLab] = useState(false);
     const [drafts, setDrafts] = useState([]);
     const [scheduled, setScheduled] = useState([]);
+    
+    // Lifted media state - shared between sidebar MediaLab and ContentStudio
+    const [sharedMedia, setSharedMedia] = useState([]);
+    const [sharedMediaIds, setSharedMediaIds] = useState([]);
+    
+    // Handler for media generated from sidebar MediaLab
+    const handleSidebarMediaGenerated = (mediaItem) => {
+        setSharedMedia(prev => [...prev, mediaItem]);
+        setShowMediaLab(false);
+        // Switch to studio view to show the media
+        setActiveView('studio');
+    };
 
     // Navigation items
     const navItems = [
@@ -79,6 +91,10 @@ const SocialManagerView = () => {
                         accounts={accounts}
                         onTogglePlatform={togglePlatform}
                         onShowAria={() => setShowAria(true)}
+                        externalMedia={sharedMedia}
+                        setExternalMedia={setSharedMedia}
+                        externalMediaIds={sharedMediaIds}
+                        setExternalMediaIds={setSharedMediaIds}
                     />
                 );
             case 'calendar':
@@ -101,7 +117,18 @@ const SocialManagerView = () => {
                     </div>
                 );
             default:
-                return <ContentStudio selectedPlatforms={selectedPlatforms} accounts={accounts} />;
+                return (
+                    <ContentStudio 
+                        selectedPlatforms={selectedPlatforms} 
+                        accounts={accounts}
+                        onTogglePlatform={togglePlatform}
+                        onShowAria={() => setShowAria(true)}
+                        externalMedia={sharedMedia}
+                        setExternalMedia={setSharedMedia}
+                        externalMediaIds={sharedMediaIds}
+                        setExternalMediaIds={setSharedMediaIds}
+                    />
+                );
         }
     };
 
@@ -256,11 +283,7 @@ const SocialManagerView = () => {
                 {showMediaLab && (
                     <MediaLab
                         onClose={() => setShowMediaLab(false)}
-                        onGenerate={(media) => {
-                            console.log('Generated media:', media);
-                            setShowMediaLab(false);
-                            // The ContentStudio will handle the media
-                        }}
+                        onGenerate={handleSidebarMediaGenerated}
                         contentContext=""
                     />
                 )}
