@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Mail, Inbox, Send, FileText, Trash2, Star, Archive,
     Search, Filter, RefreshCw, Plus, Settings, ChevronDown, Check,
-    Sparkles, Clock, AlertCircle, MoreHorizontal, Tag, Wifi, WifiOff
+    Sparkles, Clock, AlertCircle, MoreHorizontal, Tag, Wifi, WifiOff,
+    Brain, MessageCircle, BarChart3
 } from 'lucide-react';
 import EmailInbox from './EmailInbox';
 import EmailComposer from './EmailComposer';
 import EmailThread from './EmailThread';
+import MayaAssistant from './MayaAssistant';
+import MayaDashboard from './MayaDashboard';
 import { gmailApi } from '../../services/gmailApi';
 
 // Account colors for visual distinction
@@ -46,6 +49,11 @@ const EmailManagerView = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [showAccountDropdown, setShowAccountDropdown] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
+    
+    // Maya AI Assistant state
+    const [isMayaOpen, setIsMayaOpen] = useState(false);
+    const [isMayaMinimized, setIsMayaMinimized] = useState(false);
+    const [showMayaDashboard, setShowMayaDashboard] = useState(false);
     const [error, setError] = useState(null);
     const [labels, setLabels] = useState([]);
 
@@ -466,23 +474,36 @@ const EmailManagerView = () => {
                         </div>
                     )}
 
-                    {/* AI Assistant Card */}
-                    <div className="email-ai-card">
+                    {/* Maya AI Assistant Card */}
+                    <div className="email-ai-card maya-card">
                         <div className="email-ai-header">
                             <Sparkles size={18} />
-                            <span>Medha AI</span>
+                            <span>Maya AI</span>
                         </div>
                         <p className="email-ai-description">
-                            Let AI help you manage, analyze, and respond to emails intelligently.
+                            Your intelligent email assistant. Triage, draft, and manage emails with AI.
                         </p>
                         <div className="email-ai-actions">
-                            <button className="email-ai-btn" onClick={() => setSearchQuery('is:unread')}>
-                                <Sparkles size={14} />
-                                Show Unread
+                            <button 
+                                className="email-ai-btn primary" 
+                                onClick={() => setIsMayaOpen(true)}
+                            >
+                                <MessageCircle size={14} />
+                                Chat with Maya
                             </button>
-                            <button className="email-ai-btn" onClick={() => setSearchQuery('is:important')}>
-                                <AlertCircle size={14} />
-                                Find Important
+                            <button 
+                                className="email-ai-btn" 
+                                onClick={() => setShowMayaDashboard(!showMayaDashboard)}
+                            >
+                                <BarChart3 size={14} />
+                                {showMayaDashboard ? 'Hide Insights' : 'View Insights'}
+                            </button>
+                            <button 
+                                className="email-ai-btn" 
+                                onClick={() => setSearchQuery('is:unread')}
+                            >
+                                <Brain size={14} />
+                                Smart Triage
                             </button>
                         </div>
                     </div>
@@ -490,6 +511,17 @@ const EmailManagerView = () => {
 
                 {/* Main Content Area */}
                 <main className="email-content">
+                    {/* Maya Dashboard - shown above inbox when enabled */}
+                    {showMayaDashboard && !emailThread && (
+                        <MayaDashboard 
+                            accountId={selectedAccount === 'all' ? 'primary' : selectedAccount}
+                            onEmailSelect={(email) => {
+                                setSelectedEmail(email);
+                                handleEmailSelect(email);
+                            }}
+                        />
+                    )}
+                    
                     {selectedEmail && emailThread ? (
                         <EmailThread 
                             email={selectedEmail}
@@ -536,6 +568,19 @@ const EmailManagerView = () => {
                     }}
                 />
             )}
+            
+            {/* Maya AI Assistant */}
+            <MayaAssistant 
+                isOpen={isMayaOpen}
+                isMinimized={isMayaMinimized}
+                onClose={() => setIsMayaOpen(false)}
+                onMinimize={() => setIsMayaMinimized(!isMayaMinimized)}
+                emailContext={selectedEmail}
+                onDraftGenerated={(draft) => {
+                    // Could pre-fill composer with AI draft
+                    console.log('AI Draft:', draft);
+                }}
+            />
         </div>
     );
 };
