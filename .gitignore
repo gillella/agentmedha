@@ -158,7 +158,8 @@ ui/dev-dist/
 ui/dist/
 debug_*.py
 list_models.py
-test_*.py
+# Ignore test files in root, but not in tests/ directory
+/test_*.py
 .specstory/
 .cursorindexingignore
 uv.lock
@@ -167,7 +168,8 @@ uv.lock
 *.png
 !ui/public/*.png
 
-# Credentials (sensitive)
+# Credentials (sensitive - never commit)
 credentials/
 *.credentials.json
 *.token.json
+*_oauth_*.json

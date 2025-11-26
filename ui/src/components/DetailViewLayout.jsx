@@ -4,7 +4,7 @@ import { ArrowLeft, Twitter, Mail, Home, Heart, DollarSign } from 'lucide-react'
 
 const domains = [
     { id: 'social', label: 'Social', icon: Twitter, path: '/social', color: '#00d9ff' },
-    { id: 'email', label: 'Email', icon: Mail, path: '/email', color: '#3b82f6' },
+    { id: 'email-manager', label: 'Email Hub', icon: Mail, path: '/email-manager', color: '#3b82f6' },
     { id: 'habitat', label: 'Habitat', icon: Home, path: '/habitat', color: '#10b981' },
     { id: 'care', label: 'Care', icon: Heart, path: '/care', color: '#f472b6' },
     { id: 'finance', label: 'Finance', icon: DollarSign, path: '/finance', color: '#f59e0b' },

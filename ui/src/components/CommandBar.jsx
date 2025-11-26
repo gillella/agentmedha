@@ -23,7 +23,6 @@ const CommandBar = () => {
                 }
 
                 const data = await response.json();
-                console.log('Agent Response:', data.response);
                 // For now, just alert the response to prove connectivity
                 // In a real app, this would go into a chat history or overlay
                 alert(`Agent says: ${data.response}`);

@@ -51,7 +51,7 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
         setIsGenerating(true);
         // Simulate AI processing
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
+
         switch (action) {
             case 'hashtags':
                 setContent(prev => prev + '\n\n#AI #SocialMedia #ContentCreation #Digital');
@@ -82,7 +82,7 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
         if (!config) return null;
         const Icon = config.icon;
         const isActive = selectedPlatforms.includes(platform);
-        
+
         return (
             <button
                 className={`platform-toggle ${isActive ? 'active' : ''} ${platform}`}
@@ -120,7 +120,7 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
                         />
-                        
+
                         {/* Character Count */}
                         {charLimit && (
                             <div className={`char-count ${charStatus}`}>
@@ -158,7 +158,7 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
                                             <video src={item.url} />
                                         )}
                                         <div className="media-preview-actions">
-                                            <button 
+                                            <button
                                                 className="media-action-btn"
                                                 onClick={() => removeMedia(index)}
                                             >
@@ -167,15 +167,15 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
                                         </div>
                                     </div>
                                 ))}
-                                
+
                                 {/* Upload Zone */}
                                 <div className="media-upload-zone">
                                     <Upload size={24} />
                                     <span>Upload</span>
                                 </div>
-                                
+
                                 {/* AI Generate Zone */}
-                                <div 
+                                <div
                                     className="ai-generate-zone"
                                     onClick={() => setShowMediaLab(true)}
                                 >
@@ -217,7 +217,7 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
 
                 {/* Media Lab Modal */}
                 {showMediaLab && (
-                    <MediaLab 
+                    <MediaLab
                         onClose={() => setShowMediaLab(false)}
                         onGenerate={handleMediaGenerated}
                         contentContext={content}
@@ -318,21 +318,21 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
                         </div>
                     </div>
                     <div className="schedule-options">
-                        <div 
+                        <div
                             className={`schedule-option ${scheduleType === 'now' ? 'active' : ''}`}
                             onClick={() => setScheduleType('now')}
                         >
                             <div className="schedule-option-label">Publish</div>
                             <div className="schedule-option-value">Now</div>
                         </div>
-                        <div 
+                        <div
                             className={`schedule-option ${scheduleType === 'best' ? 'active' : ''}`}
                             onClick={() => setScheduleType('best')}
                         >
                             <div className="schedule-option-label">AI Optimized</div>
                             <div className="schedule-option-value">Best Time</div>
                         </div>
-                        <div 
+                        <div
                             className={`schedule-option ${scheduleType === 'schedule' ? 'active' : ''}`}
                             onClick={() => setScheduleType('schedule')}
                             style={{ gridColumn: 'span 2' }}

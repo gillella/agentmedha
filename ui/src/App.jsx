@@ -1,15 +1,15 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Settings, Activity, Brain, Zap, Share2 } from 'lucide-react';
+import { LayoutDashboard, Settings, Activity, Brain, Zap, Mail, Share2 } from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import SettingsPanel from './components/SettingsPanel';
 import SocialDetailView from './components/views/SocialDetailView';
-import { SocialManagerView } from './components/social';
 import EmailDetailView from './components/views/EmailDetailView';
 import HabitatDetailView from './components/views/HabitatDetailView';
 import CareDetailView from './components/views/CareDetailView';
 import FinanceDetailView from './components/views/FinanceDetailView';
 import CommandBar from './components/CommandBar';
+import { EmailManagerView } from './components/email';
 
 // Keyboard navigation hook
 const useKeyboardNav = () => {
@@ -66,6 +66,10 @@ const AppContent = () => {
                         <Share2 size={20} />
                         <span>Social Media</span>
                     </NavLink>
+                    <NavLink to="/email-manager" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <Mail size={20} />
+                        <span>Email Hub</span>
+                    </NavLink>
                     <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                         <Settings size={20} />
                         <span>Settings</span>
@@ -92,9 +96,9 @@ const AppContent = () => {
                 <Routes>
                     <Route path="/" element={<DashboardView />} />
                     <Route path="/settings" element={<SettingsPanel />} />
-                    <Route path="/social" element={<SocialManagerView />} />
-                    <Route path="/social-old" element={<SocialDetailView />} />
+                    <Route path="/social" element={<SocialDetailView />} />
                     <Route path="/email" element={<EmailDetailView />} />
+                    <Route path="/email-manager" element={<EmailManagerView />} />
                     <Route path="/habitat" element={<HabitatDetailView />} />
                     <Route path="/care" element={<CareDetailView />} />
                     <Route path="/finance" element={<FinanceDetailView />} />

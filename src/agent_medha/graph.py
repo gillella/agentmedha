@@ -1,4 +1,5 @@
 import os
+import uuid
 from typing import Literal
 
 # Force removal of ADC if present to avoid conflicts
@@ -13,15 +14,22 @@ from langgraph.prebuilt import create_react_agent
 
 from agent_medha.state import AgentState
 from agent_medha.memory import MemoryManager
+from agent_medha.memory.store import get_memory_store
+from agent_medha.memory.base import MemoryType, MemoryDomain
 
-# Initialize Memory
-memory = MemoryManager()
+# Initialize Memory Systems
+memory = MemoryManager()  # Legacy compatibility
+memory_store = get_memory_store()  # New comprehensive memory
 
 from agent_medha.workers.social_media import SocialMediaManager
+from agent_medha.workers.email import EmailManager
 
 # Initialize Workers
 social_manager = SocialMediaManager()
 social_tools = social_manager.get_tools()
+
+email_manager = EmailManager()
+email_tools = email_manager.get_tools()
 
 # Create Social Media Agent Node
 # We use a ReAct agent for the worker to allow it to use tools autonomously
@@ -39,21 +47,64 @@ def social_media_node(state: AgentState):
     # The result from create_react_agent is the final state, we want to return the messages
     return {"messages": result["messages"]}
 
+# Create Email Agent Node
+email_agent = create_react_agent(
+    model=ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", google_api_key=os.getenv("GEMINI_API_KEY")),
+    tools=email_tools
+)
+
+def email_node(state: AgentState):
+    """
+    Executes the email worker agent.
+    Handles email reading, searching, sending, and management.
+    """
+    result = email_agent.invoke(state)
+    return {"messages": result["messages"]}
+
 # --- Memory Retrieval Node ---
 def retrieve_node(state: AgentState):
-    """Retrieves relevant context from memory."""
+    """
+    Retrieves relevant context from all memory types.
+    
+    Uses the new SharedMemoryStore to search across:
+    - Episodic memories (past interactions)
+    - Semantic memories (facts, preferences)
+    - Procedural memories (patterns, rules)
+    """
     messages = state["messages"]
     last_message = messages[-1]
     
     if isinstance(last_message, HumanMessage):
         query = last_message.content
-        # Search for relevant episodic and semantic memories
-        # We search broadly for now, but scoped to 'supervisor' or 'global'
-        context_docs = memory.search_memory(
-            query, 
+        
+        # Use unified recall across all memory types
+        results = memory_store.recall(
+            query=query,
             agent_id="supervisor",
+            memory_types=[MemoryType.EPISODIC, MemoryType.SEMANTIC],
             limit=5
         )
+        
+        # Convert to Documents for backwards compatibility
+        from langchain_core.documents import Document
+        context_docs = []
+        
+        for mem_type, records in results.items():
+            for record in records:
+                if hasattr(record, 'content'):
+                    context_docs.append(Document(
+                        page_content=record.content,
+                        metadata={"memory_type": mem_type}
+                    ))
+        
+        # Also get relevant preferences
+        preferences = memory_store.get_preferences()
+        for pref in preferences[:3]:  # Top 3 preferences
+            context_docs.append(Document(
+                page_content=f"User preference: {pref.content}",
+                metadata={"memory_type": "preference"}
+            ))
+        
         return {"context": context_docs}
     
     return {"context": []}
@@ -69,7 +120,13 @@ def supervisor_node(state: AgentState):
     if isinstance(last_message, HumanMessage):
         content = last_message.content.lower()
         
-        # Routing Logic
+        # Email Worker Routing
+        email_keywords = ["email", "gmail", "inbox", "unread", "send email", "draft email", 
+                         "mail", "message from", "reply to", "check email", "search email"]
+        if any(kw in content for kw in email_keywords):
+            return {"next_step": "email"}
+        
+        # Social Media Worker Routing
         if "post" in content or "tweet" in content or "twitter" in content or " x " in content or "draft" in content or "research" in content:
             return {"next_step": "social_media"}
             
@@ -101,8 +158,17 @@ def response_node(state: AgentState):
 
 # --- Memory Save Node ---
 def save_node(state: AgentState):
-    """Saves the latest interaction to memory."""
+    """
+    Saves the latest interaction to episodic memory.
+    
+    Uses the new SharedMemoryStore to:
+    - Store user queries as episodic memories
+    - Store agent responses as episodic memories
+    - Extract and track entities mentioned
+    """
     messages = state["messages"]
+    session_id = state.get("session_id", str(uuid.uuid4()))
+    
     # We expect the last two messages to be User -> Agent
     if len(messages) >= 2:
         last_msg = messages[-1]
@@ -110,12 +176,23 @@ def save_node(state: AgentState):
         
         if isinstance(second_last_msg, HumanMessage):
             # Save the user's input as Episodic Memory
-            memory.add_memory(
-                second_last_msg.content, 
-                memory_type="episodic",
+            memory_store.remember_interaction(
+                content=f"User asked: {second_last_msg.content}",
                 agent_id="supervisor",
-                metadata={"role": "user"}
+                session_id=session_id,
+                importance=0.6,
+                metadata={"role": "user", "type": "query"}
             )
+            
+            # Save the agent's response
+            if hasattr(last_msg, 'content'):
+                memory_store.remember_interaction(
+                    content=f"Agent responded: {last_msg.content[:500]}...",  # Truncate long responses
+                    agent_id="supervisor",
+                    session_id=session_id,
+                    importance=0.5,
+                    metadata={"role": "assistant", "type": "response"}
+                )
             
     return {}
 
@@ -127,6 +204,7 @@ def create_graph():
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("responder", response_node)
     workflow.add_node("social_media", social_media_node)
+    workflow.add_node("email", email_node)
     workflow.add_node("save", save_node)
 
     # Start -> Retrieve -> Supervisor
@@ -140,6 +218,7 @@ def create_graph():
         {
             "respond": "responder",
             "social_media": "social_media",
+            "email": "email",
             "FINISH": END
         }
     )
@@ -149,6 +228,9 @@ def create_graph():
     
     # Social Media -> Save -> End
     workflow.add_edge("social_media", "save")
+    
+    # Email -> Save -> End
+    workflow.add_edge("email", "save")
     
     workflow.add_edge("save", END)
 

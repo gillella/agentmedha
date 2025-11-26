@@ -12,5 +12,3 @@ const SocialDetailView = () => {
 };
 
 export default SocialDetailView;
-
-

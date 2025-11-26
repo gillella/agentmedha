@@ -1,53 +1,49 @@
+"""
+Legacy MemoryManager - Backwards compatible wrapper for the new memory system.
+
+This module provides backwards compatibility with existing code while
+using the new comprehensive memory architecture under the hood.
+
+For new code, use the memory submodule directly:
+    from agent_medha.memory import SharedMemoryStore, get_memory_store
+"""
+
 import os
 # Force removal of ADC if present to avoid conflicts
 if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
     del os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
 
-import uuid
 from typing import List, Dict, Any, Optional
-from datetime import datetime
-
-from qdrant_client import QdrantClient
-from qdrant_client.http import models
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_core.documents import Document
 
+# Import the new memory system
+from agent_medha.memory.store import get_memory_store, SharedMemoryStore
+from agent_medha.memory.base import MemoryType, MemoryScope, MemoryDomain
+
+
 class MemoryManager:
+    """
+    Legacy MemoryManager providing backwards compatibility.
+    
+    This wraps the new SharedMemoryStore to maintain API compatibility
+    with existing code while using the new comprehensive memory system.
+    
+    For new code, prefer using SharedMemoryStore directly:
+        from agent_medha.memory import get_memory_store
+        store = get_memory_store()
+    """
+    
     def __init__(self, collection_name: str = "agent_medha_memory"):
         self.collection_name = collection_name
-        
-        # Initialize Qdrant Client
-        qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
-        qdrant_api_key = os.getenv("QDRANT_API_KEY", None)
-        self.client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key)
-        
-        # Initialize Embeddings
-        import google.generativeai as genai
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        
-        self.embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",
-            google_api_key=os.getenv("GEMINI_API_KEY")
-        )
-        
-        # Ensure collection exists
-        self._ensure_collection()
-
-    def _ensure_collection(self):
-        """Creates the collection if it doesn't exist."""
-        try:
-            self.client.get_collection(self.collection_name)
-        except Exception:
-            print(f"Creating collection: {self.collection_name}")
-            self.client.create_collection(
-                collection_name=self.collection_name,
-                vectors_config=models.VectorParams(
-                    size=768,  # Dimension for text-embedding-004
-                    distance=models.Distance.COSINE
-                )
-            )
-
-    def add_memory(self, text: str, memory_type: str = "episodic", agent_id: str = "global", metadata: Dict[str, Any] = None):
+        self._store = get_memory_store()
+    
+    def add_memory(
+        self, 
+        text: str, 
+        memory_type: str = "episodic", 
+        agent_id: str = "global", 
+        metadata: Dict[str, Any] = None
+    ):
         """
         Adds a memory to the vector store.
         
@@ -57,31 +53,39 @@ class MemoryManager:
             agent_id: The ID of the agent owning this memory ('global' for shared).
             metadata: Additional metadata.
         """
-        if metadata is None:
-            metadata = {}
-        
-        metadata.update({
-            "timestamp": datetime.now().isoformat(),
-            "memory_type": memory_type,
-            "agent_id": agent_id
-        })
-        
-        # Generate embedding
-        vector = self.embeddings.embed_query(text)
-        
-        # Upsert to Qdrant
-        self.client.upsert(
-            collection_name=self.collection_name,
-            points=[
-                models.PointStruct(
-                    id=str(uuid.uuid4()),
-                    vector=vector,
-                    payload={"text": text, **metadata}
-                )
-            ]
-        )
-
-    def search_memory(self, query: str, memory_type: str = None, agent_id: str = None, limit: int = 5) -> List[Document]:
+        # Map to new memory system
+        if memory_type == "episodic":
+            self._store.remember_interaction(
+                content=text,
+                agent_id=agent_id if agent_id != "global" else "supervisor",
+                scope=MemoryScope.GLOBAL if agent_id == "global" else MemoryScope.PRIVATE,
+                metadata=metadata
+            )
+        elif memory_type == "semantic":
+            self._store.learn_fact(
+                fact=text,
+                agent_id=agent_id if agent_id != "global" else "supervisor",
+                scope=MemoryScope.GLOBAL if agent_id == "global" else MemoryScope.PRIVATE
+            )
+        elif memory_type == "procedural":
+            # For procedural, store as a simple pattern
+            from agent_medha.memory.procedural import Procedure
+            proc = Procedure(
+                id=f"legacy_{hash(text)}",
+                name="Legacy Procedure",
+                description=text,
+                trigger_pattern=text,
+                agent_id=agent_id if agent_id != "global" else "supervisor",
+            )
+            self._store.add_procedure(proc, agent_id=agent_id)
+    
+    def search_memory(
+        self, 
+        query: str, 
+        memory_type: str = None, 
+        agent_id: str = None, 
+        limit: int = 5
+    ) -> List[Document]:
         """
         Searches for relevant memories with filtering.
         
@@ -91,43 +95,54 @@ class MemoryManager:
             agent_id: Filter by agent ID (optional). If None, searches global + all.
             limit: Number of results.
         """
-        vector = self.embeddings.embed_query(query)
+        # Use unified recall for comprehensive search
+        agent = agent_id if agent_id else "supervisor"
         
-        # Build filter
-        must_filters = []
+        # Determine which memory types to search
+        memory_types = None
         if memory_type:
-            must_filters.append(models.FieldCondition(key="memory_type", match=models.MatchValue(value=memory_type)))
+            if memory_type == "episodic":
+                memory_types = [MemoryType.EPISODIC]
+            elif memory_type == "semantic":
+                memory_types = [MemoryType.SEMANTIC]
+            elif memory_type == "procedural":
+                memory_types = [MemoryType.PROCEDURAL]
         
-        should_filters = []
-        if agent_id:
-            # If agent_id is provided, search for that agent's memory OR global memory
-            should_filters.append(models.FieldCondition(key="agent_id", match=models.MatchValue(value=agent_id)))
-            should_filters.append(models.FieldCondition(key="agent_id", match=models.MatchValue(value="global")))
+        results = self._store.recall(
+            query=query,
+            agent_id=agent,
+            memory_types=memory_types,
+            limit=limit
+        )
         
-        filter_obj = None
-        if must_filters or should_filters:
-            filter_obj = models.Filter(
-                must=must_filters if must_filters else None,
-                should=should_filters if should_filters else None
-            )
-
-        results = self.client.query_points(
-            collection_name=self.collection_name,
-            query=vector,
-            limit=limit,
-            query_filter=filter_obj
-        ).points
-        
+        # Convert to Documents for backwards compatibility
         documents = []
-        for res in results:
-            documents.append(Document(
-                page_content=res.payload.get("text", ""),
-                metadata=res.payload
-            ))
         
-        return documents
-
+        for mem_type, records in results.items():
+            for record in records:
+                if hasattr(record, 'to_dict'):
+                    data = record.to_dict()
+                    documents.append(Document(
+                        page_content=data.get("content", data.get("description", "")),
+                        metadata=data
+                    ))
+                elif hasattr(record, 'content'):
+                    documents.append(Document(
+                        page_content=record.content,
+                        metadata={"memory_type": mem_type}
+                    ))
+        
+        return documents[:limit]
+    
     def clear_memory(self):
         """Clears all memories (useful for testing)."""
-        self.client.delete_collection(self.collection_name)
-        self._ensure_collection()
+        # Note: This is a no-op in the new system to prevent accidental data loss
+        # For testing, use individual memory system clear methods
+        pass
+    
+    # ==================== NEW API ====================
+    
+    @property
+    def store(self) -> SharedMemoryStore:
+        """Access the underlying SharedMemoryStore for new features."""
+        return self._store

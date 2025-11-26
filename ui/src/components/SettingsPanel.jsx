@@ -19,7 +19,6 @@ const SettingsPanel = () => {
 
     const saveConfig = async () => {
         try {
-            console.log("Saving config:", config);
             alert("Configuration saved!");
         } catch (error) {
             console.error("Error saving config:", error);
