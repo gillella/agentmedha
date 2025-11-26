@@ -1,11 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     PenTool, Image, Video, Sparkles, Send, Clock, ChevronDown, Upload,
     Twitter, Linkedin, Youtube, Instagram, Facebook, Wand2, Hash,
     AtSign, Smile, Link, MapPin, BarChart2, Trash2, Edit3, Copy,
-    Zap, MessageCircle, RefreshCw, Check, X, Play, Pause
+    Zap, MessageCircle, RefreshCw, Check, X, Play, Pause, Loader2, AlertCircle
 } from 'lucide-react';
 import MediaLab from './MediaLab';
+import { twitterApi } from '../../services/twitterApi';
 
 // Platform configurations
 const PLATFORMS = {
@@ -35,6 +36,101 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
     const [previewPlatform, setPreviewPlatform] = useState('twitter');
     const [scheduleType, setScheduleType] = useState('now'); // now, schedule, best
     const [scheduleDate, setScheduleDate] = useState(null);
+    
+    // Twitter integration state
+    const [twitterUser, setTwitterUser] = useState(null);
+    const [twitterConnected, setTwitterConnected] = useState(false);
+    const [isPublishing, setIsPublishing] = useState(false);
+    const [publishResult, setPublishResult] = useState(null); // { success, message, tweetId }
+    const [uploadedMediaIds, setUploadedMediaIds] = useState([]);
+
+    // Check Twitter connection on mount
+    useEffect(() => {
+        checkTwitterConnection();
+    }, []);
+
+    const checkTwitterConnection = async () => {
+        try {
+            const result = await twitterApi.checkConnection();
+            setTwitterConnected(result.connected);
+            if (result.connected && result.user) {
+                setTwitterUser(result.user);
+            }
+        } catch (error) {
+            console.error('Failed to check Twitter connection:', error);
+            setTwitterConnected(false);
+        }
+    };
+
+    // Publish to Twitter
+    const handlePublish = async () => {
+        if (!content.trim()) return;
+        
+        // Check if Twitter is selected
+        const publishToTwitter = selectedPlatforms.includes('twitter');
+        
+        if (publishToTwitter && !twitterConnected) {
+            setPublishResult({ 
+                success: false, 
+                message: 'Twitter is not connected. Please check your credentials.' 
+            });
+            return;
+        }
+
+        setIsPublishing(true);
+        setPublishResult(null);
+
+        try {
+            if (publishToTwitter) {
+                const result = await twitterApi.postTweet(content, {
+                    mediaIds: uploadedMediaIds.length > 0 ? uploadedMediaIds : undefined
+                });
+                
+                if (result.success) {
+                    setPublishResult({ 
+                        success: true, 
+                        message: 'Tweet published successfully!',
+                        tweetId: result.tweet_id
+                    });
+                    // Clear content after successful publish
+                    setContent('');
+                    setMedia([]);
+                    setUploadedMediaIds([]);
+                } else {
+                    setPublishResult({ 
+                        success: false, 
+                        message: result.error || 'Failed to publish tweet'
+                    });
+                }
+            }
+            
+            // TODO: Add LinkedIn, YouTube, Instagram publishing here
+            
+        } catch (error) {
+            setPublishResult({ 
+                success: false, 
+                message: error.message || 'Failed to publish'
+            });
+        } finally {
+            setIsPublishing(false);
+        }
+    };
+
+    // Upload media to Twitter
+    const handleMediaUpload = async (file) => {
+        if (!twitterConnected) return;
+        
+        try {
+            const result = await twitterApi.uploadMedia(file);
+            if (result.success) {
+                setUploadedMediaIds(prev => [...prev, result.media_id]);
+                return result.media_id;
+            }
+        } catch (error) {
+            console.error('Media upload failed:', error);
+        }
+        return null;
+    };
 
     // Character count
     const getCharLimit = () => {
@@ -131,7 +227,7 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
                         {/* AI Assist Bar */}
                         <div className="ai-assist-bar">
                             {AI_ASSIST_OPTIONS.map(option => (
-                                <button
+                    <button
                                     key={option.id}
                                     className="ai-assist-btn"
                                     onClick={() => handleAIAssist(option.id)}
@@ -139,9 +235,9 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
                                 >
                                     <option.icon size={14} />
                                     {option.label}
-                                </button>
-                            ))}
-                        </div>
+                    </button>
+                ))}
+            </div>
 
                         {/* Media Section */}
                         <div className="media-section">
@@ -186,6 +282,34 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
                         </div>
                     </div>
 
+                    {/* Publish Result Banner */}
+                    {publishResult && (
+                        <div className={`publish-result ${publishResult.success ? 'success' : 'error'}`}>
+                            {publishResult.success ? (
+                                <Check size={16} />
+                            ) : (
+                                <AlertCircle size={16} />
+                            )}
+                            <span>{publishResult.message}</span>
+                            {publishResult.tweetId && (
+                                <a 
+                                    href={`https://twitter.com/i/web/status/${publishResult.tweetId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ marginLeft: '8px', color: '#1DA1F2' }}
+                                >
+                                    View Tweet →
+                                </a>
+                            )}
+                            <button 
+                                onClick={() => setPublishResult(null)}
+                                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                    )}
+
                     {/* Footer */}
                     <div className="composer-footer">
                         <div className="composer-options">
@@ -202,18 +326,38 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
                                 <BarChart2 size={14} />
                                 <span>Poll</span>
                             </button>
+                            {/* Twitter connection status */}
+                            {selectedPlatforms.includes('twitter') && (
+                                <div className={`connection-status ${twitterConnected ? 'connected' : 'disconnected'}`}>
+                                    <Twitter size={14} />
+                                    <span>{twitterConnected ? 'Connected' : 'Disconnected'}</span>
+                                </div>
+                            )}
                         </div>
                         <div className="composer-actions">
                             <button className="draft-btn">
                                 Save Draft
                             </button>
-                            <button className="publish-btn" disabled={!content.trim()}>
-                                <Send size={16} />
-                                Publish Now
+                            <button 
+                                className="publish-btn" 
+                                disabled={!content.trim() || isPublishing}
+                                onClick={handlePublish}
+                            >
+                                {isPublishing ? (
+                                    <>
+                                        <Loader2 size={16} className="spin" />
+                                        Publishing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send size={16} />
+                                        Publish Now
+                                    </>
+                                )}
                             </button>
                         </div>
+                        </div>
                     </div>
-                </div>
 
                 {/* Media Lab Modal */}
                 {showMediaLab && (
@@ -239,7 +383,7 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
                                     onClick={() => setPreviewPlatform(key)}
                                 >
                                     {platform.name.split(' ')[0]}
-                                </button>
+                        </button>
                             ))
                         }
                     </div>
@@ -247,10 +391,20 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
                         {previewPlatform === 'twitter' && (
                             <div className="twitter-preview">
                                 <div className="twitter-post-header">
-                                    <div className="twitter-avatar" />
+                                    <div className="twitter-avatar">
+                                        {twitterUser?.profile_image_url ? (
+                                            <img src={twitterUser.profile_image_url} alt={twitterUser.name} />
+                                        ) : (
+                                            twitterUser?.name?.charAt(0) || 'U'
+                                        )}
+                                    </div>
                                     <div className="twitter-user-info">
-                                        <span className="twitter-display-name">Your Name</span>
-                                        <span className="twitter-handle"> @yourhandle · now</span>
+                                        <span className="twitter-display-name">
+                                            {twitterUser?.name || 'Your Name'}
+                                        </span>
+                                        <span className="twitter-handle">
+                                            {' '}@{twitterUser?.username || 'yourhandle'} · now
+                                        </span>
                                     </div>
                                 </div>
                                 <div className="twitter-post-content">
@@ -292,7 +446,7 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
                                 {media.length > 0 && (
                                     <div className="linkedin-post-media">
                                         <img src={media[0].url} alt="Post media" />
-                                    </div>
+                </div>
                                 )}
                                 <div className="linkedin-post-actions">
                                     <span className="linkedin-action">👍 Like</span>
