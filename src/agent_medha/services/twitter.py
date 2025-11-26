@@ -280,6 +280,8 @@ class TwitterService:
         """
         Upload media for attachment to tweets
         
+        Uses tweepy for OAuth 1.0a authentication which handles the upload correctly.
+        
         Args:
             media_data: Raw bytes of the media file
             media_type: MIME type of the media
@@ -287,20 +289,33 @@ class TwitterService:
         Returns:
             media_id string to use in tweet
         """
-        url = f"{self.UPLOAD_URL}/media/upload.json"
+        import tweepy
+        import tempfile
+        import os
         
-        # For images, use simple upload
-        # For videos/gifs, chunked upload is needed (not implemented here)
-        media_base64 = base64.b64encode(media_data).decode()
+        # Create a temporary file to store the media
+        suffix = '.jpg' if 'jpeg' in media_type or 'jpg' in media_type else '.png'
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+            temp_file.write(media_data)
+            temp_path = temp_file.name
         
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                url,
-                data={"media_data": media_base64},
-                headers={"Authorization": self._get_oauth_header("POST", url)}
+        try:
+            # Use tweepy's OAuth1UserHandler for proper authentication
+            auth = tweepy.OAuth1UserHandler(
+                self.credentials.api_key,
+                self.credentials.api_secret,
+                self.credentials.access_token,
+                self.credentials.access_token_secret
             )
-            response.raise_for_status()
-            return response.json()["media_id_string"]
+            api = tweepy.API(auth)
+            
+            # Upload media using tweepy (synchronous, but works reliably)
+            media = api.media_upload(filename=temp_path)
+            return media.media_id_string
+        finally:
+            # Clean up temp file
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
     
     async def search_tweets(
         self, 
