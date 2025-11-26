@@ -16,6 +16,8 @@ Features:
 """
 
 import os
+import uuid
+import hashlib
 from typing import Dict, Any, Optional, List, Set
 from datetime import datetime
 from qdrant_client.http import models
@@ -24,6 +26,11 @@ from .base import (
     BaseMemory, MemoryRecord, MemoryType, MemoryScope, 
     MemoryDomain
 )
+
+
+def _make_uuid(name: str) -> str:
+    """Generate a deterministic UUID from a string name."""
+    return str(uuid.UUID(hashlib.md5(name.encode()).hexdigest()))
 
 
 class EntityProfile:
@@ -598,7 +605,7 @@ class SemanticMemory(BaseMemory):
         Returns:
             Contact entity ID
         """
-        entity_id = f"contact_{email.replace('@', '_at_').replace('.', '_')}"
+        entity_id = _make_uuid(f"contact_{email}")
         
         profile = EntityProfile(
             entity_id=entity_id,
@@ -614,12 +621,12 @@ class SemanticMemory(BaseMemory):
     
     def get_contact(self, email: str) -> Optional[EntityProfile]:
         """Get a contact by email."""
-        entity_id = f"contact_{email.replace('@', '_at_').replace('.', '_')}"
+        entity_id = _make_uuid(f"contact_{email}")
         return self.get_entity(entity_id)
     
     def update_contact(self, email: str, updates: Dict[str, Any]) -> bool:
         """Update a contact's attributes."""
-        entity_id = f"contact_{email.replace('@', '_at_').replace('.', '_')}"
+        entity_id = _make_uuid(f"contact_{email}")
         return self.update_entity(entity_id, updates)
 
 

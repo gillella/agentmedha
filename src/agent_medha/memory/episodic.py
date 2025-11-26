@@ -185,7 +185,7 @@ class EpisodicMemory(BaseMemory):
             must_filters.append(
                 models.FieldCondition(
                     key="created_at",
-                    range=models.Range(gte=since.isoformat())
+                    range=models.Range(gte=since.timestamp())
                 )
             )
         
@@ -193,7 +193,7 @@ class EpisodicMemory(BaseMemory):
             must_filters.append(
                 models.FieldCondition(
                     key="created_at",
-                    range=models.Range(lte=until.isoformat())
+                    range=models.Range(lte=until.timestamp())
                 )
             )
         
@@ -285,7 +285,7 @@ class EpisodicMemory(BaseMemory):
             ),
             models.FieldCondition(
                 key="created_at",
-                range=models.Range(gte=since.isoformat(), lte=until.isoformat())
+                range=models.Range(gte=since.timestamp(), lte=until.timestamp())
             )
         ]
         
@@ -311,8 +311,8 @@ class EpisodicMemory(BaseMemory):
         results = self.client.scroll(
             collection_name=self.collection_name,
             scroll_filter=filter_obj,
-            limit=limit,
-            order_by="created_at"
+            limit=limit
+            # Note: order_by requires a payload index - skipping for now
         )[0]
         
         return [MemoryRecord.from_dict(r.payload) for r in results]
@@ -381,7 +381,7 @@ class EpisodicMemory(BaseMemory):
                 ),
                 models.FieldCondition(
                     key="accessed_at",
-                    range=models.Range(lte=cutoff.isoformat())
+                    range=models.Range(lte=cutoff.timestamp())
                 )
             ]
         )

@@ -17,6 +17,8 @@ Features:
 
 import os
 import json
+import uuid
+import hashlib
 from typing import Dict, Any, Optional, List, Callable
 from datetime import datetime
 from dataclasses import dataclass, field
@@ -206,7 +208,7 @@ class ProceduralMemory(BaseMemory):
             Pattern ID
         """
         procedure = Procedure(
-            id=f"email_pattern_{pattern_name.lower().replace(' ', '_')}",
+            id=str(uuid.UUID(hashlib.md5(f"email_pattern_{pattern_name}".encode()).hexdigest())),
             name=pattern_name,
             description=description,
             trigger_pattern=trigger_pattern,
@@ -245,7 +247,7 @@ class ProceduralMemory(BaseMemory):
             Workflow ID
         """
         procedure = Procedure(
-            id=f"workflow_{workflow_name.lower().replace(' ', '_')}",
+            id=str(uuid.UUID(hashlib.md5(f"workflow_{workflow_name}".encode()).hexdigest())),
             name=workflow_name,
             description=description,
             trigger_pattern=trigger_pattern,

@@ -80,8 +80,10 @@ class MemoryRecord:
             "scope": self.scope.value,
             "domain": self.domain.value,
             "agent_id": self.agent_id,
-            "created_at": self.created_at.isoformat(),
-            "accessed_at": self.accessed_at.isoformat(),
+            "created_at": self.created_at.timestamp(),  # Store as UNIX timestamp for Qdrant range queries
+            "accessed_at": self.accessed_at.timestamp(),
+            "created_at_iso": self.created_at.isoformat(),  # Keep ISO string for display
+            "accessed_at_iso": self.accessed_at.isoformat(),
             "importance": self.importance,
             "access_count": self.access_count,
             "entities": self.entities,
@@ -101,8 +103,10 @@ class MemoryRecord:
             scope=MemoryScope(data.get("scope", "global")),
             domain=MemoryDomain(data.get("domain", "general")),
             agent_id=data.get("agent_id", "supervisor"),
-            created_at=datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now(),
-            accessed_at=datetime.fromisoformat(data["accessed_at"]) if "accessed_at" in data else datetime.now(),
+            created_at=datetime.fromtimestamp(data["created_at"]) if isinstance(data.get("created_at"), (int, float)) else 
+                      (datetime.fromisoformat(data["created_at_iso"]) if "created_at_iso" in data else datetime.now()),
+            accessed_at=datetime.fromtimestamp(data["accessed_at"]) if isinstance(data.get("accessed_at"), (int, float)) else 
+                        (datetime.fromisoformat(data["accessed_at_iso"]) if "accessed_at_iso" in data else datetime.now()),
             importance=data.get("importance", 0.5),
             access_count=data.get("access_count", 0),
             metadata={k: v for k, v in data.items() if k not in [
