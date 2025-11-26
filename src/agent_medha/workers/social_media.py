@@ -3,6 +3,9 @@ import google.generativeai as genai
 from langchain_core.tools import tool
 import base64
 
+# Import the post_tweet tool from twitter tools
+from agent_medha.tools.twitter import post_tweet
+
 # Configure GenAI
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -64,4 +67,4 @@ def draft_post(topic: str, research_notes: str) -> str:
 
 class SocialMediaManager:
     def get_tools(self):
-        return [generate_image, research_topic, draft_post]
+        return [generate_image, research_topic, draft_post, post_tweet]
