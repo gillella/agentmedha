@@ -1,14 +1,22 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import os
+import base64
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from langchain_core.messages import HumanMessage, AIMessage
 
 from agent_medha.graph import create_graph
 from agent_medha.services.twitter import get_twitter_service, TwitterService
+
+# Initialize Google GenAI for image generation
+from google import genai
+from google.genai import types
+genai_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 app = FastAPI(title="agentMedha API")
 
@@ -76,6 +84,62 @@ async def update_config(request: ConfigRequest):
     # In a real app, we might store this in a database or update env vars for the session
     print(f"Updating config: Model={request.model_name}")
     return {"status": "updated", "model": request.model_name}
+
+
+# ============================================
+# AI Image Generation Endpoints
+# ============================================
+
+class ImageGenerateRequest(BaseModel):
+    prompt: str
+    model: str = "nano-banana"  # nano-banana, realistic, artistic, vibrant
+    style: str = "realistic"
+
+class ImageGenerateResponse(BaseModel):
+    success: bool
+    image_data: Optional[str] = None  # Base64 encoded image
+    error: Optional[str] = None
+
+@app.post("/api/generate-image", response_model=ImageGenerateResponse)
+async def generate_image(request: ImageGenerateRequest):
+    """Generate an image using Nano Banana (Gemini) AI"""
+    try:
+        # Enhance prompt based on style
+        style_prompts = {
+            "realistic": "photorealistic, high detail, professional photography",
+            "artistic": "artistic, painterly, creative interpretation",
+            "minimalist": "clean, simple, minimalist design, white space",
+            "vibrant": "vibrant colors, bold, eye-catching, dynamic"
+        }
+        style_suffix = style_prompts.get(request.style, "")
+        full_prompt = f"{request.prompt}, {style_suffix}"
+        
+        print(f"Generating image with prompt: {full_prompt[:100]}...")
+        
+        response = genai_client.models.generate_content(
+            model='gemini-3-pro-image-preview',  # Nano Banana Pro
+            contents=full_prompt,
+            config=types.GenerateContentConfig(
+                response_modalities=['IMAGE', 'TEXT']
+            )
+        )
+        
+        if response.candidates:
+            for part in response.candidates[0].content.parts:
+                if part.inline_data:
+                    # Return base64 encoded image
+                    image_b64 = base64.b64encode(part.inline_data.data).decode('utf-8')
+                    mime_type = part.inline_data.mime_type or "image/jpeg"
+                    return ImageGenerateResponse(
+                        success=True,
+                        image_data=f"data:{mime_type};base64,{image_b64}"
+                    )
+        
+        return ImageGenerateResponse(success=False, error="No image generated in response")
+        
+    except Exception as e:
+        print(f"Image generation error: {e}")
+        return ImageGenerateResponse(success=False, error=str(e))
 
 
 # ============================================

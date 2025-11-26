@@ -161,10 +161,29 @@ const ContentStudio = ({ selectedPlatforms, accounts, onTogglePlatform, onShowAr
         setIsGenerating(false);
     };
 
-    // Handle media from MediaLab
-    const handleMediaGenerated = (mediaItem) => {
+    // Handle media from MediaLab - upload to Twitter immediately
+    const handleMediaGenerated = async (mediaItem) => {
         setMedia(prev => [...prev, mediaItem]);
         setShowMediaLab(false);
+        
+        // If it's a base64 image and Twitter is connected, upload it
+        if (mediaItem.url.startsWith('data:') && twitterConnected) {
+            try {
+                // Convert base64 to Blob
+                const response = await fetch(mediaItem.url);
+                const blob = await response.blob();
+                const file = new File([blob], 'generated-image.jpg', { type: blob.type });
+                
+                // Upload to Twitter
+                const result = await twitterApi.uploadMedia(file);
+                if (result.success) {
+                    setUploadedMediaIds(prev => [...prev, result.media_id]);
+                    console.log('Media uploaded to Twitter:', result.media_id);
+                }
+            } catch (error) {
+                console.error('Failed to upload generated media:', error);
+            }
+        }
     };
 
     // Remove media

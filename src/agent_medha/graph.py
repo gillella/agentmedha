@@ -12,7 +12,7 @@ from langgraph.graph import END, StateGraph, START
 from langgraph.prebuilt import create_react_agent
 
 from agent_medha.state import AgentState
-from agent_medha.memory import MemoryManager
+from agent_medha.memory_manager import MemoryManager
 
 # Initialize Memory
 memory = MemoryManager()

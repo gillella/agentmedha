@@ -43,19 +43,38 @@ const MediaLab = ({ onClose, onGenerate, contentContext }) => {
         setIsGenerating(true);
         setGeneratedMedia([]);
         
-        // Simulate AI generation (would call actual API)
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Mock generated images
-        const mockImages = [
-            { id: '1', url: 'https://picsum.photos/400/400?random=1', type: 'image' },
-            { id: '2', url: 'https://picsum.photos/400/400?random=2', type: 'image' },
-            { id: '3', url: 'https://picsum.photos/400/400?random=3', type: 'image' },
-            { id: '4', url: 'https://picsum.photos/400/400?random=4', type: 'image' },
-        ];
-        
-        setGeneratedMedia(mockImages);
-        setIsGenerating(false);
+        try {
+            // Call backend API to generate image
+            const response = await fetch('/api/generate-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    model: selectedModel,
+                    style: selectedStyle
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success && result.image_data) {
+                // Single generated image from Nano Banana
+                const generatedImage = {
+                    id: Date.now().toString(),
+                    url: result.image_data,
+                    type: 'image'
+                };
+                setGeneratedMedia([generatedImage]);
+            } else {
+                console.error('Image generation failed:', result.error);
+                alert('Failed to generate image: ' + (result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error generating image:', error);
+            alert('Failed to generate image. Please try again.');
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     // Use selected media

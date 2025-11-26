@@ -39,6 +39,7 @@ const SocialManagerView = () => {
     const [selectedPlatforms, setSelectedPlatforms] = useState(['twitter']);
     const [accounts, setAccounts] = useState(CONNECTED_ACCOUNTS);
     const [showAria, setShowAria] = useState(false);
+    const [showMediaLab, setShowMediaLab] = useState(false);
     const [drafts, setDrafts] = useState([]);
     const [scheduled, setScheduled] = useState([]);
 
@@ -195,7 +196,7 @@ const SocialManagerView = () => {
                                 <Video size={18} />
                                 <span>New Video</span>
                             </button>
-                            <button className="social-nav-item">
+                            <button className="social-nav-item" onClick={() => setShowMediaLab(true)}>
                                 <Image size={18} />
                                 <span>AI Image</span>
                             </button>
@@ -248,6 +249,19 @@ const SocialManagerView = () => {
                         isOpen={showAria}
                         onClose={() => setShowAria(false)}
                         selectedPlatforms={selectedPlatforms}
+                    />
+                )}
+                
+                {/* Media Lab Modal */}
+                {showMediaLab && (
+                    <MediaLab
+                        onClose={() => setShowMediaLab(false)}
+                        onGenerate={(media) => {
+                            console.log('Generated media:', media);
+                            setShowMediaLab(false);
+                            // The ContentStudio will handle the media
+                        }}
+                        contentContext=""
                     />
                 )}
             </div>
