@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from agent_medha.memory import MemoryManager
+from agent_medha.memory_manager import MemoryManager
 
 load_dotenv()
 
