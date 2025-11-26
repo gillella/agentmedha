@@ -156,13 +156,16 @@ qdrant_data/
 ui/node_modules/
 ui/dev-dist/
 ui/dist/
-*.png
 debug_*.py
 list_models.py
 test_*.py
 .specstory/
 .cursorindexingignore
 uv.lock
+
+# Ignore PNGs except PWA icons in ui/public
+*.png
+!ui/public/*.png
 
 # Credentials (sensitive)
 credentials/
