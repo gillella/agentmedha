@@ -35,4 +35,3 @@ __all__ = [
     "start_email_pipeline",
     "stop_email_pipeline",
 ]
-

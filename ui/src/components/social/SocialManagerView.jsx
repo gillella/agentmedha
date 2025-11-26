@@ -39,8 +39,21 @@ const SocialManagerView = () => {
     const [selectedPlatforms, setSelectedPlatforms] = useState(['twitter']);
     const [accounts, setAccounts] = useState(CONNECTED_ACCOUNTS);
     const [showAria, setShowAria] = useState(false);
+    const [showMediaLab, setShowMediaLab] = useState(false);
     const [drafts, setDrafts] = useState([]);
     const [scheduled, setScheduled] = useState([]);
+    
+    // Lifted media state - shared between sidebar MediaLab and ContentStudio
+    const [sharedMedia, setSharedMedia] = useState([]);
+    const [sharedMediaIds, setSharedMediaIds] = useState([]);
+    
+    // Handler for media generated from sidebar MediaLab
+    const handleSidebarMediaGenerated = (mediaItem) => {
+        setSharedMedia(prev => [...prev, mediaItem]);
+        setShowMediaLab(false);
+        // Switch to studio view to show the media
+        setActiveView('studio');
+    };
 
     // Navigation items
     const navItems = [
@@ -78,6 +91,10 @@ const SocialManagerView = () => {
                         accounts={accounts}
                         onTogglePlatform={togglePlatform}
                         onShowAria={() => setShowAria(true)}
+                        externalMedia={sharedMedia}
+                        setExternalMedia={setSharedMedia}
+                        externalMediaIds={sharedMediaIds}
+                        setExternalMediaIds={setSharedMediaIds}
                     />
                 );
             case 'calendar':
@@ -100,7 +117,18 @@ const SocialManagerView = () => {
                     </div>
                 );
             default:
-                return <ContentStudio selectedPlatforms={selectedPlatforms} accounts={accounts} />;
+                return (
+                    <ContentStudio 
+                        selectedPlatforms={selectedPlatforms} 
+                        accounts={accounts}
+                        onTogglePlatform={togglePlatform}
+                        onShowAria={() => setShowAria(true)}
+                        externalMedia={sharedMedia}
+                        setExternalMedia={setSharedMedia}
+                        externalMediaIds={sharedMediaIds}
+                        setExternalMediaIds={setSharedMediaIds}
+                    />
+                );
         }
     };
 
@@ -195,7 +223,7 @@ const SocialManagerView = () => {
                                 <Video size={18} />
                                 <span>New Video</span>
                             </button>
-                            <button className="social-nav-item">
+                            <button className="social-nav-item" onClick={() => setShowMediaLab(true)}>
                                 <Image size={18} />
                                 <span>AI Image</span>
                             </button>
@@ -248,6 +276,15 @@ const SocialManagerView = () => {
                         isOpen={showAria}
                         onClose={() => setShowAria(false)}
                         selectedPlatforms={selectedPlatforms}
+                    />
+                )}
+                
+                {/* Media Lab Modal */}
+                {showMediaLab && (
+                    <MediaLab
+                        onClose={() => setShowMediaLab(false)}
+                        onGenerate={handleSidebarMediaGenerated}
+                        contentContext=""
                     />
                 )}
             </div>

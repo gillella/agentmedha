@@ -3,23 +3,11 @@ import google.generativeai as genai
 from langchain_core.tools import tool
 import base64
 
-import tweepy
+# Import the post_tweet tool from twitter tools
+from agent_medha.tools.twitter import post_tweet
 
 # Configure GenAI
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-# Configure Twitter
-twitter_client = None
-try:
-    twitter_client = tweepy.Client(
-        consumer_key=os.getenv("TWITTER_API_KEY"),
-        consumer_secret=os.getenv("TWITTER_API_SECRET"),
-        access_token=os.getenv("TWITTER_ACCESS_TOKEN"),
-        access_token_secret=os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
-    )
-    print("DEBUG: Twitter Client Initialized")
-except Exception as e:
-    print(f"WARNING: Failed to initialize Twitter Client: {e}")
 
 @tool
 def generate_image(prompt: str) -> str:
@@ -87,22 +75,6 @@ def draft_post(topic: str, research_notes: str, platform: str = "twitter") -> st
     """
     response = model.generate_content(prompt)
     return response.text
-
-@tool
-def post_tweet(content: str) -> str:
-    """
-    Posts a tweet to Twitter/X.
-    """
-    if not twitter_client:
-        return "Error: Twitter client not initialized. Check credentials."
-    
-    try:
-        print(f"DEBUG: Posting tweet: {content}")
-        response = twitter_client.create_tweet(text=content)
-        return f"Tweet posted successfully! ID: {response.data['id']}"
-    except Exception as e:
-        print(f"DEBUG: Error posting tweet: {e}")
-        return f"Error posting tweet: {str(e)}"
 
 @tool
 def post_linkedin(content: str) -> str:
